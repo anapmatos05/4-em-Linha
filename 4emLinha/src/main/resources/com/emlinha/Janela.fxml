@@ -2,14 +2,14 @@
 
 <?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.Pane?>
 
-<AnchorPane id="AnchorPane" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1">
-   <children>
-      <Pane layoutX="118.0" layoutY="90.0" prefHeight="200.0" prefWidth="200.0">
-         <children>
-            <Canvas fx:id="canvas" height="200.0" layoutX="-12.0" layoutY="-6.0" width="200.0" />
-         </children>
-      </Pane>
-   </children>
+<!-- Ligação com a classe Controller usando o caminho completo do pacote -->
+<AnchorPane xmlns="http://javafx.com/javafx" 
+            xmlns:fx="http://javafx.com/fxml" 
+            fx:controller="com.emlinha.JanelaController" 
+            prefHeight="600.0" prefWidth="800.0">
+            
+    <!-- O fx:id liga este elemento visual à variável do código Java -->
+    <Canvas fx:id="canvas" height="500.0" width="700.0" layoutX="50.0" layoutY="50.0" />
+
 </AnchorPane>
