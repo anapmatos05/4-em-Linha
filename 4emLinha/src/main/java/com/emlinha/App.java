@@ -17,7 +17,7 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        scene = new Scene(loadFXML("Janela"));
+        scene = new Scene(loadFXML("primary"));
         
         // 1. Dar um título à Janela do Windows
         stage.setTitle("4 em Linha - Grupo 02");
