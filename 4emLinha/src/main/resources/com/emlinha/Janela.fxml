@@ -40,7 +40,7 @@
             <!-- Caixa do Adversário (com fx:id e borda transparente por defeito) -->
             <HBox fx:id="boxAdversario" alignment="CENTER" spacing="15.0" style="-fx-border-color: transparent; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;">
                <children>
-                  <Label text="Adversário" textFill="#e53935">
+                  <Label fx:id="labelNomeAdversario" text="Adversário" textFill="#e53935">
                      <font>
                         <Font size="22.0" />
                      </font>

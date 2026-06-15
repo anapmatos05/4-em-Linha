@@ -50,6 +50,7 @@ public class JanelaController implements Initializable {
     @FXML private VBox vboxEstatisticas;
     @FXML private VBox vboxVitoria;
     @FXML private Label labelVitoriaSubtitulo;
+    @FXML private Label labelNomeAdversario;
     
     // Variável para guardar o GraphicsContext e desenhar o tabuleiro depois
     private GraphicsContext gc;
@@ -85,6 +86,22 @@ public class JanelaController implements Initializable {
         } else {
             labelTurno.setText(nomeJogador2);
         }
+        
+        // --- ADICIONADO: Atualiza a Label grande no topo do ecrã ---
+        if (labelNomeAdversario != null) {
+            labelNomeAdversario.setText(nomeJogador2);
+        }
+    }
+    
+    /**
+     * MÉTODO ADICIONADO: Chamado pela thread de escuta da rede quando o nome chega.
+     */
+    public void receberNomeAdversarioRemoto(String nomeRecebido) {
+        // Platform.runLater garante que a interface do JavaFX não bloqueia
+        Platform.runLater(() -> {
+            configurarJogadores(this.nomeJogador1, nomeRecebido);
+            System.out.println("Interface atualizada com o nome do adversário: " + nomeRecebido);
+        });
     }
 
     /**
@@ -94,6 +111,9 @@ public class JanelaController implements Initializable {
         this.gerenteRede = gerente;
         this.meuTurnoDeRede = comecaAJogar;
         System.out.println("Rede configurada no controlador. Meu turno de rede: " + comecaAJogar);
+        
+        // --- NOVO CÓDIGO: Envia o teu nome para o adversário mal entras no jogo ---
+        this.gerenteRede.enviarComando("NOME:" + this.nomeJogador1);
     }
 
     /**
