@@ -16,11 +16,10 @@
    <top>
       <HBox alignment="CENTER" prefHeight="80.0" prefWidth="900.0" style="-fx-background-color: #357b9c;" BorderPane.alignment="CENTER">
          <children>
-            <!-- Caixa do Eu (com fx:id e borda amarela ativada por defeito) -->
             <HBox fx:id="boxEu" alignment="CENTER" spacing="10.0" style="-fx-border-color: #ffc107; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;">
                <children>
                   <Circle fill="#ffc107" radius="15.0" stroke="BLACK" strokeType="INSIDE" strokeWidth="0.0" />
-                  <Label text="Eu" textFill="#ffc107">
+                  <Label fx:id="labelTopoJogador1" text="Eu" textFill="#ffc107">
                      <font>
                         <Font size="22.0" />
                      </font>
@@ -37,7 +36,6 @@
                </font>
             </Label>
             <Region HBox.hgrow="ALWAYS" />
-            <!-- Caixa do Adversário (com fx:id e borda transparente por defeito) -->
             <HBox fx:id="boxAdversario" alignment="CENTER" spacing="15.0" style="-fx-border-color: transparent; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;">
                <children>
                   <Label fx:id="labelNomeAdversario" text="Adversário" textFill="#e53935">
@@ -57,7 +55,6 @@
    <right>
       <StackPane prefWidth="250.0" BorderPane.alignment="CENTER">
          <children>
-            <!-- Painel 1: Estatísticas Normais -->
             <VBox fx:id="vboxEstatisticas" alignment="TOP_CENTER" spacing="10.0" style="-fx-background-color: #083c54;">
                <children>
                   <Label text="Estado" textFill="#9abccc">
@@ -91,7 +88,6 @@
                </children>
             </VBox>
             
-            <!-- Painel 2: Ecrã de Vitória (Escondido por defeito) -->
             <VBox fx:id="vboxVitoria" alignment="CENTER" spacing="20.0" style="-fx-background-color: #083c54;" visible="false">
                <padding>
                   <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
