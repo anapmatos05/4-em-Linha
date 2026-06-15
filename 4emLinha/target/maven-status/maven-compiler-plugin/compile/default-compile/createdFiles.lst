@@ -1,5 +1,6 @@
 com\emlinha\JogoModelo.class
 com\emlinha\PrimaryController.class
+com\emlinha\GerenteRede.class
 module-info.class
 com\emlinha\JanelaController.class
 com\emlinha\SecondaryController.class

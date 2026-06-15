@@ -10,6 +10,7 @@ public class GerenteRede {
     private PrintWriter saida;
     private BufferedReader entrada;
     private JanelaController janelaController;
+    private ServerSocket servidor; // Movido para variável de instância para fechar corretamente no fim
     private boolean ativo = true;
 
     // Construtor liga o gerente ao controlador do tabuleiro
@@ -18,11 +19,12 @@ public class GerenteRede {
     }
 
     /**
-     * TAREFA: Criar lógica de Servidor (Host)
+     * Lógica de Servidor (Host) - CORRIGIDA: Sem try-with-resources para não matar a conexão
      */
     public void iniciarServidor(int porta) {
         new Thread(() -> {
-            try (ServerSocket servidor = new ServerSocket(porta)) {
+            try {
+                servidor = new ServerSocket(porta);
                 System.out.println("Servidor à espera na porta " + porta);
                 
                 // Aguarda o cliente conectar (Bloqueia a thread secundária, mas não o JavaFX)
@@ -38,21 +40,25 @@ public class GerenteRede {
     }
 
     /**
-     * TAREFA: Criar lógica de Cliente (Join)
+     * Lógica de Cliente (Join)
      */
     public void conectarAoServidor(String ip, int porta) {
-        new Thread(() -> {
-            try {
-                System.out.println("A tentar conectar a " + ip + ":" + porta);
-                socket = new Socket(ip, porta);
-                System.out.println("Conectado ao Host com sucesso!");
-                
-                inicializarCanais();
-                escutarRede();
-            } catch (IOException e) {
-                System.err.println("Erro ao conectar ao Cliente: " + e.getMessage());
-            }
-        }).start();
+        // CORREÇÃO: No modo Cliente, precisamos que a conexão aconteça na Thread principal 
+        // ANTES de mudar de ecrã, para garantir que o Socket está pronto quando o tabuleiro abrir!
+        try {
+            System.out.println("A tentar conectar a " + ip + ":" + porta);
+            socket = new Socket(ip, porta);
+            System.out.println("Conectado ao Host com sucesso!");
+            
+            inicializarCanais();
+            
+            // A escuta sim, roda numa thread secundária para não travar o jogo
+            new Thread(this::escutarRede).start();
+        } catch (IOException e) {
+            System.err.println("Erro ao conectar ao Servidor: " + e.getMessage());
+            // Lança uma exceção para o PrimaryController saber que falhou e não mudar de ecrã
+            throw new RuntimeException(e);
+        }
     }
 
     private void inicializarCanais() throws IOException {
@@ -61,7 +67,7 @@ public class GerenteRede {
     }
 
     /**
-     * TAREFA: Implementar Threads de escuta (Protocolo de Mensagens)
+     * Implementar Threads de escuta (Protocolo de Mensagens)
      */
     private void escutarRede() {
         try {
@@ -69,14 +75,13 @@ public class GerenteRede {
             while (ativo && (linha = entrada.readLine()) != null) {
                 System.out.println("Mensagem recebida da rede: " + linha);
                 
-                final String mensagem = linha;
+                String mensagem = linha;
                 
-                // TAREFA: Integração com o Controller (Obrigatoriamente via Platform.runLater)
                 if (mensagem.startsWith("JOGADA:")) {
                     int coluna = Integer.parseInt(mensagem.split(":")[1]);
                     
+                    // CORREÇÃO: Deixamos o Platform.runLater apenas aqui para disparar o visual em segurança
                     Platform.runLater(() -> {
-                        // Faz a jogada recebida acontecer visualmente no ecrã do adversário
                         janelaController.receberJogadaRemota(coluna);
                     });
                 }
@@ -90,15 +95,18 @@ public class GerenteRede {
      * Envia comandos para o outro computador
      */
     public void enviarComando(String comando) {
-        if (saida != null) {
-            saida.println(comando);
-        }
+        new Thread(() -> { // Executa o envio numa Thread rápida para o clique do rato ser instantâneo
+            if (saida != null) {
+                saida.println(comando);
+            }
+        }).start();
     }
 
     public void fecharConexao() {
         ativo = false;
         try {
             if (socket != null) socket.close();
+            if (servidor != null) servidor.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -3,6 +3,7 @@ package com.emlinha;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -16,92 +17,83 @@ import javafx.stage.Stage;
 
 public class PrimaryController {
 
-    // Reaproveitamento exato dos IDs que já tens mapeados do Scene Builder
     @FXML
-    private TextField txt_player1; // Será usado para o "Meu Nome"
-
-    @FXML
-    private TextField txt_player2; // Será usado para o "IP do Adversário" (Se vazio = Criar Jogo)
+    private TextField txt_player1; // "Meu Nome"
 
     @FXML
-    private Button btn_start; // O botão que dispara a ação de conexão/inicialização
+    private TextField txt_player2; // "IP do Adversário"
 
-    private final int PORTA_JOGO = 12345; // Porta padrão padrão para a comunicação local
+    @FXML
+    private Button btn_start; 
 
-    /**
-     * Método acionado quando o utilizador clica no botão "Iniciar Jogo".
-     * Decide se cria ou entra num jogo com base nos campos preenchidos.
-     */
+    private final int PORTA_JOGO = 12345; 
+
     @FXML
     private void btnStartOnAction(ActionEvent event) {
         String meuNome = txt_player1.getText().trim();
         String ipAdversario = txt_player2.getText().trim();
 
-        // 1. Validação do nome do próprio jogador
         if (meuNome.isEmpty()) {
-            mostrarAviso("Campo Vazio", AlertType.WARNING, "Por favor, introduza o seu nome no campo 'Jogador 1'!");
+            mostrarAviso("Campo Vazio", AlertType.WARNING, "Por favor, introduza o seu nome!");
             return;
         }
 
         try {
-            // 2. Carregar o ecrã do Tabuleiro (Janela.fxml)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("Janela.fxml"));
             Parent root = loader.load();
             JanelaController janelaController = loader.getController();
 
-            // 3. Identificar a intenção: Se o campo do IP (txt_player2) estiver vazio, Criamos Sala (Host)
             if (ipAdversario.isEmpty()) {
-                // Obter o IP real da tua máquina para mostrares ao teu colega
-                String ipLocal = InetAddress.getLocalHost().getHostAddress();
-                System.out.println("A iniciar modo Servidor (Host)...");
-
-                // Configura os nomes iniciais (Tu és o Amarelo/J1, o outro será atualizado ao entrar)
-                janelaController.configurarJogadores(meuNome, "Adversário");
-
-                // Instancia o gestor de rede e abre o ServerSocket
-                GerenteRede gerente = new GerenteRede(janelaController);
-                gerente.iniciarServidor(PORTA_JOGO);
-
-                // O Host começa a jogar primeiro (true)
-                janelaController.configurarRede(gerente, true);
-
-                // Transita para o ecrã do tabuleiro
-                mudarParaTabuleiro(root);
+                // ---------- MODO SERVIDOR (HOST) ----------
+                String ipLocal = "127.0.0.1";
+                try {
+                    ipLocal = InetAddress.getLocalHost().getHostAddress();
+                } catch (UnknownHostException e) {
+                    System.out.println("Não foi possível obter o IP externo, a usar fallback.");
+                }
                 
-                // Exibe o pop-up com as instruções do IP
-                mostrarAviso("Sala Criada com Sucesso", AlertType.INFORMATION, 
-                    "Dá este IP ao teu colega: " + ipLocal + "\nO jogo começará assim que ele se conectar!");
+                System.out.println("A iniciar modo Servidor (Host)...");
+                janelaController.configurarJogadores(meuNome, "A aguardar...");
+
+                GerenteRede gerente = new GerenteRede(janelaController);
+                janelaController.configurarRede(gerente, true); // Começa a jogar (Amarelo)
+
+                // Transita para o tabuleiro primeiro para a interface não congelar
+                mudarParaTabuleiro(root);
+
+                // Mostra o aviso e, ao fechar o pop-up, o servidor abre a porta em segundo plano
+                String finalIp = ipLocal;
+                Platform.runLater(() -> {
+                    mostrarAviso("Sala Criada", AlertType.INFORMATION, 
+                        "Dá este IP ao teu colega: " + finalIp + "\nO jogo começará assim que ele se conectar!");
+                    
+                    // Dispara a inicialização do ServerSocket (deve correr numa Thread dentro do GerenteRede)
+                    gerente.iniciarServidor(PORTA_JOGO);
+                });
 
             } else {
-                // Se o campo de texto tiver um IP, vamos conectar-nos a ele (Cliente/Join)
+                // ---------- MODO CLIENTE (JOIN) ----------
                 System.out.println("A conectar ao Host em: " + ipAdversario);
-
-                // Configura os nomes (Quem se conecta entra na cadeira do Jogador 2)
                 janelaController.configurarJogadores("Criador", meuNome);
 
-                // Instancia o gestor de rede e conecta ao Socket remoto
                 GerenteRede gerente = new GerenteRede(janelaController);
+                
+                // Tenta estabelecer a ligação física antes de mudar de ecrã
                 gerente.conectarAoServidor(ipAdversario, PORTA_JOGO);
+                
+                janelaController.configurarRede(gerente, false); // Joga em segundo (Vermelho)
 
-                // O Cliente joga em segundo lugar (false), aguardando a jogada do Host
-                janelaController.configurarRede(gerente, false);
-
-                // Transita para o ecrã do tabuleiro
                 mudarParaTabuleiro(root);
             }
 
-        } catch (UnknownHostException e) {
-            mostrarAviso("Erro de Rede", AlertType.ERROR, "Não foi possível detetar o teu endereço IP local.");
         } catch (IOException e) {
             System.err.println("Erro ao carregar o ficheiro Janela.fxml.");
             e.printStackTrace();
-            mostrarAviso("Erro de Carregamento", AlertType.ERROR, "Não foi possível abrir o ecrã do tabuleiro do jogo.");
+            mostrarAviso("Erro de Conexão", AlertType.ERROR, 
+                "Não foi possível estabelecer ligação. Garante que o IP está correto e a sala já foi criada!");
         }
     }
 
-    /**
-     * Realiza a troca de cenas na Stage atual.
-     */
     private void mudarParaTabuleiro(Parent root) {
         Stage stage = (Stage) btn_start.getScene().getWindow();
         Scene scene = new Scene(root);
@@ -110,9 +102,6 @@ public class PrimaryController {
         stage.show();
     }
 
-    /**
-     * Pop-up configurável para interações com o utilizador.
-     */
     private void mostrarAviso(String titulo, AlertType tipo, String mensagem) {
         Alert alert = new Alert(tipo);
         alert.setTitle(titulo);
