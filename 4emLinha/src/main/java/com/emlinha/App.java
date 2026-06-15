@@ -17,10 +17,19 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        // CORREÇÃO: Mudado de "Janela" para "primary" para abrir o ecrã inicial primeiro
-        scene = new Scene(loadFXML("primary"), 900, 600);
+        scene = new Scene(loadFXML("primary"));
+        
+        // 1. Dar um título à Janela do Windows
+        stage.setTitle("4 em Linha - Grupo 02");
+        
+        // 2. Definir o tamanho mínimo para garantir que nada fica cortado
+        stage.setMinWidth(900);
+        stage.setMinHeight(650);
+        
+        // 3. Bloquear o redimensionamento da janela (Impede que o design se desformate)
+        stage.setResizable(false); 
+        
         stage.setScene(scene);
-        stage.setTitle("4 em Linha - Menu Principal"); // Título atualizado para o menu
         stage.show();
     }
 

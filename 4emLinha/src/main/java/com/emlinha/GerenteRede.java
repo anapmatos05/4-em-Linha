@@ -96,6 +96,11 @@ public class GerenteRede {
                     Platform.runLater(() -> {
                         janelaController.receberJogadaRemota(coluna);
                     });
+                } 
+                // --- NOVO CÓDIGO: Receber o Nome do adversário ---
+                else if (mensagem.startsWith("NOME:")) {
+                    String nomeAdversario = mensagem.substring(5); // Corta os primeiros 5 caracteres ("NOME:")
+                    janelaController.receberNomeAdversarioRemoto(nomeAdversario);
                 }
             }
         } catch (IOException e) {

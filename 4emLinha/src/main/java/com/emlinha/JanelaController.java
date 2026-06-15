@@ -48,6 +48,7 @@ public class JanelaController implements Initializable {
     @FXML private VBox vboxEstatisticas;
     @FXML private VBox vboxVitoria;
     @FXML private Label labelVitoriaSubtitulo;
+    @FXML private Label labelNomeAdversario;
     
     // Injeção das referências do FXML para atualizar o topo dinamicamente
     @FXML private Label labelTopoJogador1;
@@ -74,21 +75,39 @@ public class JanelaController implements Initializable {
         this.nomeJogador1 = p1;
         this.nomeJogador2 = p2;
         
+        labelPecasEu.setText(nomeJogador1 + " - " + pecasEu);
+        labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
+        
+        if (turnoAtual == 1) {
+            labelTurno.setText(nomeJogador1);
+        } else {
+            labelTurno.setText(nomeJogador2);
+        }
+        
+        // --- ADICIONADO: Atualiza a Label grande no topo do ecrã ---
+        if (labelNomeAdversario != null) {
+            labelNomeAdversario.setText(nomeJogador2);
+        }
+    }
+    
+    /**
+     * MÉTODO ADICIONADO: Chamado pela thread de escuta da rede quando o nome chega.
+     */
+    public void receberNomeAdversarioRemoto(String nomeRecebido) {
+        // Platform.runLater garante que a interface do JavaFX não bloqueia
         Platform.runLater(() -> {
-            labelPecasEu.setText(nomeJogador1 + " - " + pecasEu);
-            labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
-            labelTurno.setText(turnoAtual == 1 ? nomeJogador1 : nomeJogador2);
-            
-            // Atualiza também os nomes gigantes do topo do ecrã
-            if (labelTopoJogador1 != null) labelTopoJogador1.setText(nomeJogador1);
-            if (labelTopoJogador2 != null) labelTopoJogador2.setText(nomeJogador2);
+            configurarJogadores(this.nomeJogador1, nomeRecebido);
+            System.out.println("Interface atualizada com o nome do adversário: " + nomeRecebido);
         });
     }
 
     public void configurarRede(GerenteRede gerente, boolean comecaAJogar) {
         this.gerenteRede = gerente;
         this.meuTurnoDeRede = comecaAJogar;
-        System.out.println("Rede configurada. Meu turno de rede inicial: " + comecaAJogar);
+        System.out.println("Rede configurada no controlador. Meu turno de rede: " + comecaAJogar);
+        
+        // --- NOVO CÓDIGO: Envia o teu nome para o adversário mal entras no jogo ---
+        this.gerenteRede.enviarComando("NOME:" + this.nomeJogador1);
     }
 
     /**
