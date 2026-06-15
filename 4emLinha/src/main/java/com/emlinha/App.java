@@ -17,9 +17,10 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        scene = new Scene(loadFXML("Janela"), 900, 600);
+        // CORREÇÃO: Mudado de "Janela" para "primary" para abrir o ecrã inicial primeiro
+        scene = new Scene(loadFXML("primary"), 900, 600);
         stage.setScene(scene);
-        stage.setTitle("4 em Linha"); // Adiciona um título à janela
+        stage.setTitle("4 em Linha - Menu Principal"); // Título atualizado para o menu
         stage.show();
     }
 
@@ -35,5 +36,4 @@ public class App extends Application {
     public static void main(String[] args) {
         launch();
     }
-
 }
