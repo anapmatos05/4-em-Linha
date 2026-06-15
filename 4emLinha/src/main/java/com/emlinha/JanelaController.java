@@ -12,7 +12,6 @@ import javafx.scene.paint.Color;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.util.Duration;
@@ -26,12 +25,15 @@ public class JanelaController implements Initializable {
     
     // Lógica do Jogo
     private JogoModelo modelo = new JogoModelo();
-    private int turnoAtual = 1; // 1 = Eu (Amarelo), 2 = Adversário (Vermelho)
+    private int turnoAtual = 1; // 1 = Jogador 1 (Amarelo), 2 = Jogador 2 (Vermelho)
     private boolean jogoTerminado = false;
     private int colunaHover = -1;
     private int pecasEu = 0;
     private int pecasAdversario = 0;
     
+    // Variáveis para guardar os nomes reais vindos do ecrã inicial
+    private String nomeJogador1 = "Eu";
+    private String nomeJogador2 = "Adversário";
     
     // Declarações injetadas pelo FXML
     @FXML private Canvas canvas;
@@ -59,10 +61,28 @@ public class JanelaController implements Initializable {
             System.out.println("GraphicsContext carregado com sucesso!");
             // Desenhar o tabuleiro inicial
             desenharTabuleiro();
-            labelPecasEu.setText("Eu - 0");
-            labelPecasAdversario.setText("Adversário - 0");
+            labelPecasEu.setText(nomeJogador1 + " - 0");
+            labelPecasAdversario.setText(nomeJogador2 + " - 0");
             labelUltimaJogada.setText("Nenhuma");
             labelUltimaJogada.setTextFill(Color.web("#9abccc"));
+        }
+    }
+    
+    /**
+     * MÉTODOS PARA CONFIGURAR OS NOMES REAIS (Resolve o erro de compilação)
+     */
+    public void configurarJogadores(String p1, String p2) {
+        this.nomeJogador1 = p1;
+        this.nomeJogador2 = p2;
+        
+        // Atualiza as labels imediatamente com os nomes digitados
+        labelPecasEu.setText(nomeJogador1 + " - " + pecasEu);
+        labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
+        
+        if (turnoAtual == 1) {
+            labelTurno.setText(nomeJogador1);
+        } else {
+            labelTurno.setText(nomeJogador2);
         }
     }
     
@@ -124,12 +144,12 @@ public class JanelaController implements Initializable {
                         vboxEstatisticas.setVisible(false);
                         vboxVitoria.setVisible(true);
                         
-                        // Atualizar textos e cores da vitória
+                        // Atualizar textos e cores da vitória com os nomes reais
                         if (turnoAtual == 1) {
-                            labelVitoriaSubtitulo.setText("Tu ganhaste!");
+                            labelVitoriaSubtitulo.setText(nomeJogador1 + " ganhou!");
                             labelVitoriaSubtitulo.setTextFill(Color.web("#ffc107"));
                         } else {
-                            labelVitoriaSubtitulo.setText("Adversário ganhou!");
+                            labelVitoriaSubtitulo.setText(nomeJogador2 + " ganhou!");
                             labelVitoriaSubtitulo.setTextFill(Color.web("#e53935"));
                         }
                         
@@ -142,7 +162,6 @@ public class JanelaController implements Initializable {
                     
                 } else {
                     // ---- A ANIMAÇÃO ACONTECE AQUI ----
-                    // Durante a queda: desenhar a grelha e a peça por cima a deslocar-se
                     desenharTabuleiro(); 
                     gc.setFill(turnoAtual == 1 ? Color.web("#ffc107") : Color.web("#e53935"));
                     gc.fillOval(xPeca, currentY[0] - raio, raio * 2, raio * 2);
@@ -160,12 +179,11 @@ public class JanelaController implements Initializable {
     
     @FXML
     public void canvasMoved(MouseEvent e) {
-        if (jogoTerminado || animando) return; // Pausa o efeito se o jogo acabou ou há animação
+        if (jogoTerminado || animando) return; 
         
         double larguraColuna = canvas.getWidth() / 7;
         int colunaAtual = (int) (e.getX() / larguraColuna);
         
-        // Só redesenha se mudámos realmente de coluna para não sobrecarregar o processador
         if (colunaAtual != colunaHover) {
             colunaHover = colunaAtual;
             desenharTabuleiro();
@@ -174,7 +192,6 @@ public class JanelaController implements Initializable {
 
     @FXML
     public void canvasExited(MouseEvent e) {
-        // Quando o rato sai da janela, a peça de pré-visualização desaparece
         colunaHover = -1;
         desenharTabuleiro();
     }
@@ -182,14 +199,14 @@ public class JanelaController implements Initializable {
     private void desenharTabuleiro() {
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        double alturaTopo = 60.0; // Aumentado para 60px para as bolas caberem perfeitamente
+        double alturaTopo = 60.0; 
         double larguraColuna = canvas.getWidth() / 7;
         double alturaRestante = canvas.getHeight() - alturaTopo;
         double alturaLinha = alturaRestante / 6;
         double raio = Math.min(larguraColuna, alturaLinha) / 2.5; 
 
         // 1. Desenhar a barra do topo e as bolas numéricas/hover
-        gc.setFill(Color.web("#5a8ca0")); // Cor de fundo da barra igual ao design
+        gc.setFill(Color.web("#5a8ca0")); 
         gc.fillRect(0, 0, canvas.getWidth(), alturaTopo);
         gc.setFont(Font.font("System", FontWeight.BOLD, 22));
 
@@ -197,16 +214,14 @@ public class JanelaController implements Initializable {
             double centroX = (i * larguraColuna) + (larguraColuna / 2);
             double centroY = alturaTopo / 2;
 
-            // Se o rato estiver nesta coluna, mostra a bola com a cor do jogador
             if (i == colunaHover && !jogoTerminado && !animando) {
                 gc.setFill(turnoAtual == 1 ? Color.web("#ffc107") : Color.web("#e53935"));
             } else {
-                gc.setFill(Color.web("#9abccc")); // Bola de repouso
+                gc.setFill(Color.web("#9abccc")); 
             }
             
             gc.fillOval(centroX - raio, centroY - raio, raio * 2, raio * 2);
 
-            // Escrever o número por cima da bola
             gc.setFill(Color.web("#083c54"));
             gc.fillText(String.valueOf(i + 1), centroX - 7, centroY + 8);
         }
@@ -218,14 +233,12 @@ public class JanelaController implements Initializable {
             for (int coluna = 0; coluna < 7; coluna++) {
                 
                 double centroX = (coluna * larguraColuna) + (larguraColuna / 2);
-                // A posição Y agora soma os 40px do topo
                 double centroY = alturaTopo + (linha * alturaLinha) + (alturaLinha / 2);
                 double x = centroX - raio;
                 double y = centroY - raio;
 
                 int valor = estadoAtual[linha][coluna];
                 
-                // Truque da Animação: Desenhar a posição como vazia se for a peça que está a cair
                 if (linha == animLinha && coluna == animColuna) {
                     valor = 0;
                 }
@@ -238,14 +251,13 @@ public class JanelaController implements Initializable {
                     gc.setFill(Color.web("#9abccc")); 
                 }
                 
-                // Desenhar a bola normal
                 gc.fillOval(x, y, raio * 2, raio * 2);
                 
                 // --- DESTACAR AS 4 PEÇAS VENCEDORAS ---
                 if (jogoTerminado && modelo.getPecasVitoriosas() != null) {
                     for (int[] pos : modelo.getPecasVitoriosas()) {
                         if (pos[0] == linha && pos[1] == coluna) {
-                            gc.setStroke(Color.web("#ffc107")); // Borda amarela da vitória
+                            gc.setStroke(Color.web("#ffffff")); // Mudado para Branco para fazer contraste com Amarelo/Vermelho
                             gc.setLineWidth(4.0);
                             gc.strokeOval(x, y, raio * 2, raio * 2);
                         }
@@ -256,42 +268,35 @@ public class JanelaController implements Initializable {
     }
     
     private void atualizarEstatisticas(int col, int lin) {
-        // Atualizar os contadores
         if (turnoAtual == 1) {
             pecasEu++;
-            labelPecasEu.setText("Eu - " + pecasEu);
+            labelPecasEu.setText(nomeJogador1 + " - " + pecasEu);
         } else {
             pecasAdversario++;
-            labelPecasAdversario.setText("Adversário - " + pecasAdversario);
+            labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
         }
         
-        // Calcular a Lógica Visual: O array vai de 0 (topo) a 5 (base). 
-        // Para o utilizador, a base é a L. 1. A matemática simples é: 6 - lin
         int linhaVisual = 6 - lin;
         labelUltimaJogada.setText("Col. " + (col + 1) + ", L. " + linhaVisual);
-        
-        // Mudar cor do texto da última jogada consoante o jogador
         labelUltimaJogada.setTextFill(turnoAtual == 1 ? Color.web("#ffc107") : Color.web("#e53935"));
     }
 
     private void mudarTurnoVisual() {
         if (turnoAtual == 1) {
-            turnoAtual = 2; // Passa para o Adversário
+            turnoAtual = 2; 
             
-            labelTurno.setText("Adversário");
+            labelTurno.setText(nomeJogador2); // Nome real do J2
             labelTurno.setTextFill(Color.web("#e53935"));
             
-            // Retirar borda do Eu e colocar no Adversário
             boxEu.setStyle("-fx-border-color: transparent; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;");
             boxAdversario.setStyle("-fx-border-color: #e53935; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;");
             
         } else {
-            turnoAtual = 1; // Volta para o Eu
+            turnoAtual = 1; 
             
-            labelTurno.setText("Eu");
+            labelTurno.setText(nomeJogador1); // Nome real do J1
             labelTurno.setTextFill(Color.web("#ffc107"));
             
-            // Retirar borda do Adversário e colocar no Eu
             boxAdversario.setStyle("-fx-border-color: transparent; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;");
             boxEu.setStyle("-fx-border-color: #ffc107; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;");
         }
@@ -299,38 +304,31 @@ public class JanelaController implements Initializable {
     
     @FXML
     public void acaoJogarDeNovo(ActionEvent event) {
-        // Limpar modelo
         modelo.reiniciarJogo();
         
-        // Repor variáveis de controlo
         jogoTerminado = false;
         pecasEu = 0;
         pecasAdversario = 0;
         turnoAtual = 1;
 
-        // Repor os textos das estatísticas
-        labelPecasEu.setText("Eu - 0");
-        labelPecasAdversario.setText("Adversário - 0");
+        labelPecasEu.setText(nomeJogador1 + " - 0");
+        labelPecasAdversario.setText(nomeJogador2 + " - 0");
         labelUltimaJogada.setText("Nenhuma");
         labelUltimaJogada.setTextFill(Color.web("#9abccc"));
 
-        // Repor os retângulos dos jogadores no topo
         boxAdversario.setStyle("-fx-border-color: transparent; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;");
         boxEu.setStyle("-fx-border-color: #ffc107; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;");
-        labelTurno.setText("Eu");
+        labelTurno.setText(nomeJogador1);
         labelTurno.setTextFill(Color.web("#ffc107"));
 
-        // Trocar os painéis novamente
         vboxVitoria.setVisible(false);
         vboxEstatisticas.setVisible(true);
 
-        // Limpar o desenho do Canvas
         desenharTabuleiro();
     }
 
     @FXML
     public void acaoSair(ActionEvent event) {
-        // Encerra a aplicação completamente
         Platform.exit();
         System.exit(0);
     }
