@@ -49,7 +49,7 @@ public class JanelaController implements Initializable {
     @FXML private VBox vboxVitoria;
     @FXML private Label labelVitoriaSubtitulo;
     
-    // CORREÇÃO: Injeção das referências do FXML para atualizar o topo dinamicamente
+    // Injeção das referências do FXML para atualizar o topo dinamicamente
     @FXML private Label labelTopoJogador1;
     @FXML private Label labelTopoJogador2;
     
@@ -79,7 +79,7 @@ public class JanelaController implements Initializable {
             labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
             labelTurno.setText(turnoAtual == 1 ? nomeJogador1 : nomeJogador2);
             
-            // CORREÇÃO: Atualiza também os nomes gigantes do topo do ecrã
+            // Atualiza também os nomes gigantes do topo do ecrã
             if (labelTopoJogador1 != null) labelTopoJogador1.setText(nomeJogador1);
             if (labelTopoJogador2 != null) labelTopoJogador2.setText(nomeJogador2);
         });
@@ -109,7 +109,7 @@ public class JanelaController implements Initializable {
             labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
             labelTurno.setText(turnoAtual == 1 ? nomeJogador1 : nomeJogador2);
             
-            // CORREÇÃO: Sincroniza os nomes gigantes do topo assim que a rede os recebe
+            // Sincroniza os nomes gigantes do topo assim que a rede os recebe
             if (labelTopoJogador1 != null) labelTopoJogador1.setText(nomeJogador1);
             if (labelTopoJogador2 != null) labelTopoJogador2.setText(nomeJogador2);
             
@@ -368,7 +368,6 @@ public class JanelaController implements Initializable {
 
     @FXML
     public void acaoSair(ActionEvent event) {
-        // CORREÇÃO: Corrigido o erro de compilação 'geterenteRede' para 'gerenteRede'
         if (gerenteRede != null) {
             gerenteRede.fecharConexao();
         }
