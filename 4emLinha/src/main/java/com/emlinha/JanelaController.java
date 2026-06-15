@@ -84,19 +84,45 @@ public class JanelaController implements Initializable {
     }
 
     /**
+     * MÉTODOS DE REDE ADICIONADOS: Para sincronização dinâmica dos nomes
+     */
+    public void atualizarNomeAdversario(String nomeDoOutro) {
+        if (this.meuTurnoDeRede) {
+            // Se eu começo (Host), recebi o nome do Cliente (Jogador 2)
+            this.nomeJogador2 = nomeDoOutro;
+        } else {
+            // Se eu espero (Cliente), recebi o nome do Host (Jogador 1)
+            this.nomeJogador1 = nomeDoOutro;
+        }
+        
+        // Força a interface a reescrever as labels na Thread gráfica principal
+        Platform.runLater(() -> {
+            labelPecasEu.setText(nomeJogador1 + " - " + pecasEu);
+            labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
+            labelTurno.setText(turnoAtual == 1 ? nomeJogador1 : nomeJogador2);
+            desenharTabuleiro();
+        });
+    }
+
+    public String getNomeJogador1() {
+        return this.nomeJogador1;
+    }
+
+    public String getNomeJogador2() {
+        return this.nomeJogador2;
+    }
+
+    /**
      * Recebe a jogada que veio do outro computador via Socket
      */
     public void receberJogadaRemota(int coluna) {
         System.out.println("Jogada remota recebida na coluna: " + coluna);
-        // Executa a jogada usando o turno do adversário
         processarJogada(coluna);
-        // Após a animação da jogada dele acabar, o controlo do rato volta para mim
         this.meuTurnoDeRede = true;
     }
     
     @FXML
     public void canvasClicked(MouseEvent e) {
-        // Bloqueia se o jogo acabou, se estiver a animar ou se NÃO for o meu turno de rede
         if (jogoTerminado || animando || !meuTurnoDeRede) {
             return;
         }
@@ -104,17 +130,13 @@ public class JanelaController implements Initializable {
         double larguraColuna = canvas.getWidth() / 7;
         int colunaSelecionada = (int) (e.getX() / larguraColuna);
         
-        // Valida se a coluna tem espaço
         if (modelo.getTabuleiro()[0][colunaSelecionada] == 0) {
-            // Bloqueia o rato local imediatamente para não clicar duas vezes
             this.meuTurnoDeRede = false;
 
-            // Envia o comando via Socket para o outro PC
             if (gerenteRede != null) {
                 gerenteRede.enviarComando("JOGADA:" + colunaSelecionada);
             }
             
-            // Executa localmente
             processarJogada(colunaSelecionada);
         } else {
             System.out.println("Coluna cheia!");
@@ -122,7 +144,6 @@ public class JanelaController implements Initializable {
     }
 
     private void processarJogada(int colunaSelecionada) {
-        // Guarda o turno que está a executar esta jogada específica
         final int turnoDaJogada = this.turnoAtual;
         
         int linhaOndeCaiu = modelo.inserirPeca(colunaSelecionada, turnoDaJogada);

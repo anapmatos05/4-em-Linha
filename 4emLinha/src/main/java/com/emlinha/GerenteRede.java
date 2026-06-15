@@ -10,7 +10,7 @@ public class GerenteRede {
     private PrintWriter saida;
     private BufferedReader entrada;
     private JanelaController janelaController;
-    private ServerSocket servidor; // Movido para variável de instância para fechar corretamente no fim
+    private ServerSocket servidor; 
     private boolean ativo = true;
 
     // Construtor liga o gerente ao controlador do tabuleiro
@@ -19,7 +19,7 @@ public class GerenteRede {
     }
 
     /**
-     * Lógica de Servidor (Host) - CORRIGIDA: Sem try-with-resources para não matar a conexão
+     * Lógica de Servidor (Host) - Envia o seu nome após a conexão
      */
     public void iniciarServidor(int porta) {
         new Thread(() -> {
@@ -27,11 +27,15 @@ public class GerenteRede {
                 servidor = new ServerSocket(porta);
                 System.out.println("Servidor à espera na porta " + porta);
                 
-                // Aguarda o cliente conectar (Bloqueia a thread secundária, mas não o JavaFX)
+                // Aguarda o cliente conectar
                 socket = servidor.accept();
                 System.out.println("Cliente conectado: " + socket.getInetAddress().getHostAddress());
                 
                 inicializarCanais();
+                
+                // PROTOCOLO: O Host envia o seu nome real para o Cliente imediatamente
+                enviarComando("NOME:" + janelaController.getNomeJogador1());
+                
                 escutarRede();
             } catch (IOException e) {
                 System.err.println("Erro no Servidor: " + e.getMessage());
@@ -40,25 +44,25 @@ public class GerenteRede {
     }
 
     /**
-     * Lógica de Cliente (Join)
+     * Lógica de Cliente (Join) - Envia o seu nome após a conexão
      */
     public void conectarAoServidor(String ip, int porta) {
-        // CORREÇÃO: No modo Cliente, precisamos que a conexão aconteça na Thread principal 
-        // ANTES de mudar de ecrã, para garantir que o Socket está pronto quando o tabuleiro abrir!
-        try {
-            System.out.println("A tentar conectar a " + ip + ":" + porta);
-            socket = new Socket(ip, porta);
-            System.out.println("Conectado ao Host com sucesso!");
-            
-            inicializarCanais();
-            
-            // A escuta sim, roda numa thread secundária para não travar o jogo
-            new Thread(this::escutarRede).start();
-        } catch (IOException e) {
-            System.err.println("Erro ao conectar ao Servidor: " + e.getMessage());
-            // Lança uma exceção para o PrimaryController saber que falhou e não mudar de ecrã
-            throw new RuntimeException(e);
-        }
+        new Thread(() -> {
+            try {
+                System.out.println("A tentar conectar a " + ip + ":" + porta);
+                socket = new Socket(ip, porta);
+                System.out.println("Conectado ao Host com sucesso!");
+                
+                inicializarCanais();
+                
+                // PROTOCOLO: O Cliente envia o seu nome real para o Host imediatamente
+                enviarComando("NOME:" + janelaController.getNomeJogador2());
+                
+                escutarRede();
+            } catch (IOException e) {
+                System.err.println("Erro ao conectar ao Servidor: " + e.getMessage());
+            }
+        }).start();
     }
 
     private void inicializarCanais() throws IOException {
@@ -67,7 +71,7 @@ public class GerenteRede {
     }
 
     /**
-     * Implementar Threads de escuta (Protocolo de Mensagens)
+     * Implementação da escuta ativa (Trata Jogadas e Nomes reais)
      */
     private void escutarRede() {
         try {
@@ -77,10 +81,18 @@ public class GerenteRede {
                 
                 String mensagem = linha;
                 
+                // Trata a receção do nome do adversário
+                if (mensagem.startsWith("NOME:")) {
+                    String nomeRecebido = mensagem.split(":")[1];
+                    Platform.runLater(() -> {
+                        janelaController.atualizarNomeAdversario(nomeRecebido);
+                    });
+                }
+                
+                // Trata a receção de uma jogada
                 if (mensagem.startsWith("JOGADA:")) {
                     int coluna = Integer.parseInt(mensagem.split(":")[1]);
                     
-                    // CORREÇÃO: Deixamos o Platform.runLater apenas aqui para disparar o visual em segurança
                     Platform.runLater(() -> {
                         janelaController.receberJogadaRemota(coluna);
                     });
@@ -92,10 +104,10 @@ public class GerenteRede {
     }
 
     /**
-     * Envia comandos para o outro computador
+     * Envia comandos para o outro computador numa Thread assíncrona rápida
      */
     public void enviarComando(String comando) {
-        new Thread(() -> { // Executa o envio numa Thread rápida para o clique do rato ser instantâneo
+        new Thread(() -> { 
             if (saida != null) {
                 saida.println(comando);
             }
