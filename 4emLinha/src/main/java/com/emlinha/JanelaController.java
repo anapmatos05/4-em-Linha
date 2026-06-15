@@ -35,6 +35,10 @@ public class JanelaController implements Initializable {
     private String nomeJogador1 = "Eu";
     private String nomeJogador2 = "Adversário";
     
+    // --- VARIÁVEIS ADICIONADAS PARA O MODO ONLINE ---
+    private GerenteRede gerenteRede;
+    private boolean meuTurnoDeRede = true; // Por padrão começa true, será controlado no setup de rede
+    
     // Declarações injetadas pelo FXML
     @FXML private Canvas canvas;
     @FXML private Label labelTurno;
@@ -55,11 +59,9 @@ public class JanelaController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        // Obter o GraphicsContext assim que a interface é carregada
         if (canvas != null) {
             gc = canvas.getGraphicsContext2D();
             System.out.println("GraphicsContext carregado com sucesso!");
-            // Desenhar o tabuleiro inicial
             desenharTabuleiro();
             labelPecasEu.setText(nomeJogador1 + " - 0");
             labelPecasAdversario.setText(nomeJogador2 + " - 0");
@@ -69,13 +71,12 @@ public class JanelaController implements Initializable {
     }
     
     /**
-     * MÉTODOS PARA CONFIGURAR OS NOMES REAIS (Resolve o erro de compilação)
+     * Configura os nomes reais vindos do ecrã inicial.
      */
     public void configurarJogadores(String p1, String p2) {
         this.nomeJogador1 = p1;
         this.nomeJogador2 = p2;
         
-        // Atualiza as labels imediatamente com os nomes digitados
         labelPecasEu.setText(nomeJogador1 + " - " + pecasEu);
         labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
         
@@ -85,34 +86,72 @@ public class JanelaController implements Initializable {
             labelTurno.setText(nomeJogador2);
         }
     }
+
+    /**
+     * MÉTODO ADICIONADO: Configura a infraestrutura de rede nesta janela.
+     */
+    public void configurarRede(GerenteRede gerente, boolean comecaAJogar) {
+        this.gerenteRede = gerente;
+        this.meuTurnoDeRede = comecaAJogar;
+        System.out.println("Rede configurada no controlador. Meu turno de rede: " + comecaAJogar);
+    }
+
+    /**
+     * MÉTODO ADICIONADO: Chamado pela thread de escuta da rede quando o adversário remoto faz um movimento.
+     */
+    public void receberJogadaRemota(int coluna) {
+        // Executa a jogada no tabuleiro com a animação
+        processarJogada(coluna);
+        // Após o adversário jogar, o controlo do rato volta para mim
+        this.meuTurnoDeRede = true;
+    }
     
     @FXML
     public void canvasClicked(MouseEvent e) {
-        // Ignora o clique se o jogo acabou ou se uma peça já está a cair
-        if (jogoTerminado || animando) {
+        // Bloqueia o clique se o jogo acabou, se estiver a animar ou se NÃO for o meu turno de rede
+        if (jogoTerminado || animando || !meuTurnoDeRede) {
             return;
         }
 
         double larguraColuna = canvas.getWidth() / 7;
         int colunaSelecionada = (int) (e.getX() / larguraColuna);
         
+        // Verifica se a jogada é válida antes de enviar e bloquear o turno
+        if (modelo.getTabuleiro()[0][colunaSelecionada] == 0) {
+            // Envia a jogada para o adversário via rede
+            if (gerenteRede != null) {
+                gerenteRede.enviarComando("JOGADA:" + colunaSelecionada);
+            }
+            
+            // Bloqueia o rato local imediatamente (espera pela resposta/jogada do outro)
+            this.meuTurnoDeRede = false;
+            
+            // Executa a jogada localmente
+            processarJogada(colunaSelecionada);
+        } else {
+            System.out.println("Coluna cheia! Tente outra.");
+        }
+    }
+
+    /**
+     * MÉTODO REFACTORIZADO: Concentra toda a lógica de física, animação e regras de vitória.
+     * Pode ser disparado tanto pelo clique local como pelo pacote recebido via Socket.
+     */
+    private void processarJogada(int colunaSelecionada) {
         int linhaOndeCaiu = modelo.inserirPeca(colunaSelecionada, turnoAtual);
         
         if (linhaOndeCaiu != -1) { 
-            // Iniciar o bloqueio e guardar as coordenadas da peça a animar
             animando = true;
             animColuna = colunaSelecionada;
             animLinha = linhaOndeCaiu;
-            
-            // Remove a bola do hover para ela não ficar parada no topo durante a queda
             colunaHover = -1; 
             
+            double larguraColuna = canvas.getWidth() / 7;
             double alturaTopo = 60.0;
             double alturaRestante = canvas.getHeight() - alturaTopo;
             double alturaLinha = alturaRestante / 6;
             double raio = Math.min(larguraColuna, alturaLinha) / 2.5;
             
-            // Calcular de onde a peça sai (Topo) e onde vai parar
             final double startY = alturaTopo / 2; 
             final double endY = alturaTopo + (animLinha * alturaLinha) + (alturaLinha / 2);
             final double xPeca = (animColuna * larguraColuna) + (larguraColuna / 2) - raio;
@@ -121,30 +160,25 @@ public class JanelaController implements Initializable {
             
             Timeline timeline = new Timeline();
             KeyFrame frame = new KeyFrame(Duration.millis(15), event -> {
-                currentY[0] += 25; // Aumentar este valor faz a peça cair mais rápido
+                currentY[0] += 25; 
                 
-                if (currentY[0] >= endY) { // A peça chegou ao fundo
+                if (currentY[0] >= endY) { 
                     currentY[0] = endY;
                     timeline.stop();
                     
-                    // Repor o estado normal e desenhar o tabuleiro final
                     animando = false;
                     animColuna = -1;
                     animLinha = -1;
                     desenharTabuleiro(); 
                     
-                    // 1. Atualizar as estatísticas laterais COM os dados da jogada
                     atualizarEstatisticas(colunaSelecionada, linhaOndeCaiu);
                     
-                    // 2. Verificar a vitória ou mudar o turno
                     if (modelo.verificarVitoria(turnoAtual)) {
                         jogoTerminado = true;
                         
-                        // Ocultar estatísticas e mostrar tela de vitória
                         vboxEstatisticas.setVisible(false);
                         vboxVitoria.setVisible(true);
                         
-                        // Atualizar textos e cores da vitória com os nomes reais
                         if (turnoAtual == 1) {
                             labelVitoriaSubtitulo.setText(nomeJogador1 + " ganhou!");
                             labelVitoriaSubtitulo.setTextFill(Color.web("#ffc107"));
@@ -153,15 +187,12 @@ public class JanelaController implements Initializable {
                             labelVitoriaSubtitulo.setTextFill(Color.web("#e53935"));
                         }
                         
-                        // Redesenhar o tabuleiro uma última vez para mostrar o destaque
                         desenharTabuleiro(); 
-                        
                     } else {
                         mudarTurnoVisual(); 
                     }
                     
                 } else {
-                    // ---- A ANIMAÇÃO ACONTECE AQUI ----
                     desenharTabuleiro(); 
                     gc.setFill(turnoAtual == 1 ? Color.web("#ffc107") : Color.web("#e53935"));
                     gc.fillOval(xPeca, currentY[0] - raio, raio * 2, raio * 2);
@@ -170,16 +201,14 @@ public class JanelaController implements Initializable {
             
             timeline.getKeyFrames().add(frame);
             timeline.setCycleCount(Animation.INDEFINITE);
-            timeline.play(); // Dispara a animação
-            
-        } else {
-            System.out.println("Coluna cheia!");
+            timeline.play();
         }
     }
     
     @FXML
     public void canvasMoved(MouseEvent e) {
-        if (jogoTerminado || animando) return; 
+        // Não mostra a pré-visualização (hover) se não for o meu turno de jogar
+        if (jogoTerminado || animando || !meuTurnoDeRede) return; 
         
         double larguraColuna = canvas.getWidth() / 7;
         int colunaAtual = (int) (e.getX() / larguraColuna);
@@ -205,7 +234,6 @@ public class JanelaController implements Initializable {
         double alturaLinha = alturaRestante / 6;
         double raio = Math.min(larguraColuna, alturaLinha) / 2.5; 
 
-        // 1. Desenhar a barra do topo e as bolas numéricas/hover
         gc.setFill(Color.web("#5a8ca0")); 
         gc.fillRect(0, 0, canvas.getWidth(), alturaTopo);
         gc.setFont(Font.font("System", FontWeight.BOLD, 22));
@@ -214,7 +242,7 @@ public class JanelaController implements Initializable {
             double centroX = (i * larguraColuna) + (larguraColuna / 2);
             double centroY = alturaTopo / 2;
 
-            if (i == colunaHover && !jogoTerminado && !animando) {
+            if (i == colunaHover && !jogoTerminado && !animando && meuTurnoDeRede) {
                 gc.setFill(turnoAtual == 1 ? Color.web("#ffc107") : Color.web("#e53935"));
             } else {
                 gc.setFill(Color.web("#9abccc")); 
@@ -226,7 +254,6 @@ public class JanelaController implements Initializable {
             gc.fillText(String.valueOf(i + 1), centroX - 7, centroY + 8);
         }
 
-        // 2. Desenhar a grelha
         int[][] estadoAtual = modelo.getTabuleiro();
 
         for (int linha = 0; linha < 6; linha++) {
@@ -253,11 +280,10 @@ public class JanelaController implements Initializable {
                 
                 gc.fillOval(x, y, raio * 2, raio * 2);
                 
-                // --- DESTACAR AS 4 PEÇAS VENCEDORAS ---
                 if (jogoTerminado && modelo.getPecasVitoriosas() != null) {
                     for (int[] pos : modelo.getPecasVitoriosas()) {
                         if (pos[0] == linha && pos[1] == coluna) {
-                            gc.setStroke(Color.web("#ffffff")); // Mudado para Branco para fazer contraste com Amarelo/Vermelho
+                            gc.setStroke(Color.web("#ffffff")); 
                             gc.setLineWidth(4.0);
                             gc.strokeOval(x, y, raio * 2, raio * 2);
                         }
@@ -284,17 +310,14 @@ public class JanelaController implements Initializable {
     private void mudarTurnoVisual() {
         if (turnoAtual == 1) {
             turnoAtual = 2; 
-            
-            labelTurno.setText(nomeJogador2); // Nome real do J2
+            labelTurno.setText(nomeJogador2); 
             labelTurno.setTextFill(Color.web("#e53935"));
             
             boxEu.setStyle("-fx-border-color: transparent; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;");
             boxAdversario.setStyle("-fx-border-color: #e53935; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;");
-            
         } else {
             turnoAtual = 1; 
-            
-            labelTurno.setText(nomeJogador1); // Nome real do J1
+            labelTurno.setText(nomeJogador1); 
             labelTurno.setTextFill(Color.web("#ffc107"));
             
             boxAdversario.setStyle("-fx-border-color: transparent; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;");
@@ -304,8 +327,9 @@ public class JanelaController implements Initializable {
     
     @FXML
     public void acaoJogarDeNovo(ActionEvent event) {
+        // No modo online, o ideal seria enviar um sinal de "RESTART" via rede.
+        // Como infraestrutura local básica:
         modelo.reiniciarJogo();
-        
         jogoTerminado = false;
         pecasEu = 0;
         pecasAdversario = 0;
@@ -329,6 +353,9 @@ public class JanelaController implements Initializable {
 
     @FXML
     public void acaoSair(ActionEvent event) {
+        if (gerenteRede != null) {
+            gerenteRede.fecharConexao();
+        }
         Platform.exit();
         System.exit(0);
     }
