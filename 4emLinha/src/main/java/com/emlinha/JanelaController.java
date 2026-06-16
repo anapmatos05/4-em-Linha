@@ -197,7 +197,22 @@ public class JanelaController implements Initializable {
                         }
                         
                         desenharTabuleiro(); 
-                    } else {
+                        
+                    } 
+                    // --- VERIFICAR EMPATE ---
+                    else if (modelo.verificarEmpate()) {
+                        jogoTerminado = true;
+                        
+                        vboxEstatisticas.setVisible(false);
+                        vboxVitoria.setVisible(true);
+                        
+                        labelVitoriaSubtitulo.setText("Empate!");
+                        labelVitoriaSubtitulo.setTextFill(Color.web("#ffffff")); // Branco para destacar que foi neutro
+                        
+                        desenharTabuleiro();
+                    } 
+                    // -------------------------------------
+                    else {
                         mudarTurnoVisual(); 
                     }
                     
