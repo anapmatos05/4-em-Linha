@@ -71,19 +71,22 @@ public class GerenteRede {
                 
                 final String mensagem = linha;
                 
-                // TAREFA: Integração com o Controller (Obrigatoriamente via Platform.runLater)
                 if (mensagem.startsWith("JOGADA:")) {
-                    int coluna = Integer.parseInt(mensagem.split(":")[1]);
-                    
-                    Platform.runLater(() -> {
-                        // Faz a jogada recebida acontecer visualmente no ecrã do adversário
-                        janelaController.receberJogadaRemota(coluna);
-                    });
+                    try {
+                        int coluna = Integer.parseInt(mensagem.split(":")[1]);
+                        Platform.runLater(() -> {
+                            janelaController.receberJogadaRemota(coluna);
+                        });
+                    } catch (Exception ex) {
+                        System.out.println("Erro ao ler jogada.");
+                    }
                 } 
-                // --- NOVO CÓDIGO: Receber o Nome do adversário ---
                 else if (mensagem.startsWith("NOME:")) {
-                    String nomeAdversario = mensagem.substring(5); // Corta os primeiros 5 caracteres ("NOME:")
+                    String nomeAdversario = mensagem.substring(5);
                     janelaController.receberNomeAdversarioRemoto(nomeAdversario);
+                } 
+                else if (mensagem.equals("RESTART")) {
+                    janelaController.receberRestartRemoto();
                 }
             }
         } catch (IOException e) {
