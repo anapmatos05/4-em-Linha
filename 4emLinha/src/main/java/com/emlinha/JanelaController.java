@@ -101,8 +101,16 @@ public class JanelaController implements Initializable {
     
     public void receberNomeAdversarioRemoto(String nomeRecebido) {
         Platform.runLater(() -> {
-            configurarJogadores(this.nomeJogador1, nomeRecebido);
-            System.out.println("Interface atualizada com o nome do adversário: " + nomeRecebido);
+            if (this.euComecoOJogo) {
+                // Sou o Host (Amarelo). O nome que chegou é do Cliente (Vermelho).
+                configurarJogadores(this.nomeJogador1, nomeRecebido);
+            } else {
+                // Sou o Cliente (Vermelho). O nome que chegou é do Host (Amarelo).
+                configurarJogadores(nomeRecebido, this.nomeJogador2);
+            }
+            
+            desenharTabuleiro();
+            System.out.println("Nomes perfeitamente sincronizados!");
         });
     }
 
@@ -110,7 +118,19 @@ public class JanelaController implements Initializable {
         this.gerenteRede = gerente;
         this.meuTurnoDeRede = comecaAJogar;
         this.euComecoOJogo = comecaAJogar; // Memoriza quem iniciou a partida
-        System.out.println("Rede configurada no controlador. Meu turno de rede: " + comecaAJogar);
+        
+        // --- A MAGIA ACONTECE AQUI ---
+        if (!comecaAJogar) {
+            // Eu sou o Cliente! O meu nome devia estar no lado Vermelho (Jogador 2).
+            this.nomeJogador2 = this.nomeJogador1; // Movo o meu nome para o lado vermelho
+            this.nomeJogador1 = "Adversário";      // O amarelo fica à espera do nome do Host
+            
+            Platform.runLater(() -> {
+                configurarJogadores(this.nomeJogador1, this.nomeJogador2);
+            });
+        }
+        
+        System.out.println("Rede configurada no controlador. Sou o Host? " + comecaAJogar);
     }
     
     /**
@@ -118,32 +138,10 @@ public class JanelaController implements Initializable {
      */
     public void enviarMeuNome() {
         if (gerenteRede != null) {
-            gerenteRede.enviarComando("NOME:" + this.nomeJogador1);
+            // Se eu sou o Host, envio o meu nome a partir do Jogador 1. Se sou Cliente, envio a partir do Jogador 2.
+            String meuNomeReal = this.euComecoOJogo ? this.nomeJogador1 : this.nomeJogador2;
+            gerenteRede.enviarComando("NOME:" + meuNomeReal);
         }
-    }
-
-    public void atualizarNomeAdversario(String nomeDoOutro) {
-        if (this.meuTurnoDeRede) {
-            this.nomeJogador2 = nomeDoOutro;
-        } else {
-            this.nomeJogador1 = nomeDoOutro;
-        }
-        
-        Platform.runLater(() -> {
-            labelPecasEu.setText(nomeJogador1 + " - " + pecasEu);
-            labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
-            labelTurno.setText(turnoAtual == 1 ? nomeJogador1 : nomeJogador2);
-            
-            // --- A CORREÇÃO: Sincroniza a barra do topo com as estatísticas ---
-            if (labelTopoJogador1 != null) {
-                labelTopoJogador1.setText(nomeJogador1);
-            }
-            if (labelNomeAdversario != null) {
-                labelNomeAdversario.setText(nomeJogador2);
-            }
-            
-            desenharTabuleiro();
-        });
     }
 
     public String getNomeJogador1() {

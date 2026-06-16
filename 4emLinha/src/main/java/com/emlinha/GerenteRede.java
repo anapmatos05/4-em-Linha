@@ -19,7 +19,7 @@ public class GerenteRede {
     }
 
     /**
-     * Lógica de Servidor (Host) - Envia o seu nome após a conexão
+     * Lógica de Servidor (Host)
      */
     public void iniciarServidor(int porta) {
         new Thread(() -> {
@@ -32,10 +32,6 @@ public class GerenteRede {
                 System.out.println("Cliente conectado: " + socket.getInetAddress().getHostAddress());
                 
                 inicializarCanais();
-                
-                // PROTOCOLO: O Host envia o seu nome real para o Cliente imediatamente
-                enviarComando("NOME:" + janelaController.getNomeJogador1());
-                
                 escutarRede();
             } catch (IOException e) {
                 System.err.println("Erro no Servidor: " + e.getMessage());
@@ -44,7 +40,7 @@ public class GerenteRede {
     }
 
     /**
-     * Lógica de Cliente (Join) - Envia o seu nome após a conexão
+     * Lógica de Cliente (Join)
      */
     public void conectarAoServidor(String ip, int porta) {
         new Thread(() -> {
@@ -54,10 +50,6 @@ public class GerenteRede {
                 System.out.println("Conectado ao Host com sucesso!");
                 
                 inicializarCanais();
-                
-                // PROTOCOLO: O Cliente envia o seu nome real para o Host imediatamente
-                enviarComando("NOME:" + janelaController.getNomeJogador2());
-                
                 escutarRede();
             } catch (IOException e) {
                 System.err.println("Erro ao conectar ao Servidor: " + e.getMessage());
@@ -69,8 +61,8 @@ public class GerenteRede {
         saida = new PrintWriter(socket.getOutputStream(), true);
         entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         
-        // NOVO: A ligação foi estabelecida com sucesso! 
-        // Agora sim, podemos dizer o nosso nome ao outro computador.
+        // A ligação foi estabelecida com sucesso! 
+        // O Controlador agora envia o nome apenas uma vez de forma segura.
         Platform.runLater(() -> {
             if (janelaController != null) {
                 janelaController.enviarMeuNome();
@@ -79,7 +71,7 @@ public class GerenteRede {
     }
 
     /**
-     * Implementação da escuta ativa (Trata Jogadas e Nomes reais)
+     * Implementação da escuta ativa (Trata Jogadas, Nomes e Restarts)
      */
     private void escutarRede() {
         try {
@@ -89,15 +81,13 @@ public class GerenteRede {
                 
                 String mensagem = linha;
                 
-                // Trata a receção do nome do adversário
+                // 1. Receber e Tratar o NOME
                 if (mensagem.startsWith("NOME:")) {
-                    String nomeRecebido = mensagem.split(":")[1];
-                    Platform.runLater(() -> {
-                        janelaController.atualizarNomeAdversario(nomeRecebido);
-                    });
+                    String nomeRecebido = mensagem.substring(5);
+                    janelaController.receberNomeAdversarioRemoto(nomeRecebido);
                 }
-                
-                if (mensagem.startsWith("JOGADA:")) {
+                // 2. Receber e Tratar a JOGADA
+                else if (mensagem.startsWith("JOGADA:")) {
                     try {
                         int coluna = Integer.parseInt(mensagem.split(":")[1]);
                         Platform.runLater(() -> {
@@ -107,10 +97,7 @@ public class GerenteRede {
                         System.out.println("Erro ao ler jogada.");
                     }
                 } 
-                else if (mensagem.startsWith("NOME:")) {
-                    String nomeAdversario = mensagem.substring(5);
-                    janelaController.receberNomeAdversarioRemoto(nomeAdversario);
-                } 
+                // 3. Receber e Tratar o RESTART
                 else if (mensagem.equals("RESTART")) {
                     janelaController.receberRestartRemoto();
                 }
