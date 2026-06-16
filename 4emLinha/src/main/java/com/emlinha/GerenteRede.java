@@ -68,6 +68,14 @@ public class GerenteRede {
     private void inicializarCanais() throws IOException {
         saida = new PrintWriter(socket.getOutputStream(), true);
         entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        
+        // NOVO: A ligação foi estabelecida com sucesso! 
+        // Agora sim, podemos dizer o nosso nome ao outro computador.
+        Platform.runLater(() -> {
+            if (janelaController != null) {
+                janelaController.enviarMeuNome();
+            }
+        });
     }
 
     /**
