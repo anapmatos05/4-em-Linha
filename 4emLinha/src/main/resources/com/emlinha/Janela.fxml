@@ -16,7 +16,7 @@
    <top>
       <HBox alignment="CENTER" prefHeight="80.0" prefWidth="900.0" style="-fx-background-color: #357b9c;" BorderPane.alignment="CENTER">
          <children>
-            <HBox fx:id="boxEu" alignment="CENTER" spacing="10.0" style="-fx-border-color: #ffc107; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;">
+            <HBox fx:id="boxEu" alignment="CENTER" prefWidth="220.0" spacing="10.0" style="-fx-background-color: #1e2d3b; -fx-border-radius: 30; -fx-padding: 5 15 5 15;">
                <children>
                   <Circle fill="#ffc107" radius="15.0" stroke="BLACK" strokeType="INSIDE" strokeWidth="0.0" />
                   <Label fx:id="labelTopoJogador1" text="Eu" textFill="#ffc107">
@@ -29,21 +29,25 @@
                   <Insets left="20.0" />
                </HBox.margin>
             </HBox>
+            
             <Region HBox.hgrow="ALWAYS" />
+            
             <Label text="4 em Linha" textFill="WHITE">
                <font>
                   <Font size="36.0" />
                </font>
             </Label>
+            
             <Region HBox.hgrow="ALWAYS" />
-            <HBox fx:id="boxAdversario" alignment="CENTER" spacing="15.0" style="-fx-border-color: transparent; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;">
+            
+            <HBox fx:id="boxAdversario" alignment="CENTER" prefWidth="220.0" spacing="10.0" style="-fx-background-color: #1e2d3b; -fx-border-radius: 30; -fx-padding: 5 15 5 15;">
                <children>
                   <Label fx:id="labelNomeAdversario" text="Adversário" textFill="#e53935">
                      <font>
                         <Font size="22.0" />
                      </font>
                   </Label>
-                  <Circle fill="#e53935" radius="25.0" stroke="BLACK" strokeType="INSIDE" strokeWidth="0.0" />
+                  <Circle fill="#e53935" radius="15.0" stroke="BLACK" strokeType="INSIDE" strokeWidth="0.0" />
                </children>
                <HBox.margin>
                   <Insets right="20.0" />
@@ -119,6 +123,23 @@
       </StackPane>
    </right>
    <center>
-      <Canvas fx:id="canvas" onMouseClicked="#canvasClicked" onMouseMoved="#canvasMoved" onMouseExited="#canvasExited" height="520.0" width="650.0" BorderPane.alignment="CENTER" />
+      <VBox alignment="CENTER" prefHeight="520.0" prefWidth="650.0" spacing="10.0" BorderPane.alignment="CENTER">
+         <children>
+            <HBox fx:id="boxErro" alignment="CENTER" maxWidth="450.0" prefHeight="50.0" style="-fx-background-color: #b71c1c; -fx-background-radius: 10; -fx-border-color: #ffc107; -fx-border-width: 1; -fx-border-radius: 10;" visible="false">
+               <children>
+                  <Label fx:id="labelErro" text="A Coluna X está Cheia! Escolhe outra" textAlignment="CENTER" textFill="WHITE">
+                     <font>
+                        <Font name="System Bold" size="16.0" />
+                     </font>
+                  </Label>
+               </children>
+               <VBox.margin>
+                  <Insets top="10.0" />
+               </VBox.margin>
+            </HBox>
+            
+            <Canvas fx:id="canvas" height="440.0" width="650.0" onMouseClicked="#canvasClicked" onMouseExited="#canvasExited" onMouseMoved="#canvasMoved" />
+         </children>
+      </VBox>
    </center>
 </BorderPane>
