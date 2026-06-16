@@ -89,17 +89,6 @@ public class JanelaController implements Initializable {
             labelNomeAdversario.setText(nomeJogador2);
         }
     }
-    
-    /**
-     * MÉTODO ADICIONADO: Chamado pela thread de escuta da rede quando o nome chega.
-     */
-    public void receberNomeAdversarioRemoto(String nomeRecebido) {
-        // Platform.runLater garante que a interface do JavaFX não bloqueia
-        Platform.runLater(() -> {
-            configurarJogadores(this.nomeJogador1, nomeRecebido);
-            System.out.println("Interface atualizada com o nome do adversário: " + nomeRecebido);
-        });
-    }
 
     public void configurarRede(GerenteRede gerente, boolean comecaAJogar) {
         this.gerenteRede = gerente;
@@ -226,7 +215,22 @@ public class JanelaController implements Initializable {
                             labelVitoriaSubtitulo.setTextFill(Color.web("#e53935"));
                         }
                         desenharTabuleiro(); 
-                    } else {
+                        
+                    } 
+                    // --- VERIFICAR EMPATE ---
+                    else if (modelo.verificarEmpate()) {
+                        jogoTerminado = true;
+                        
+                        vboxEstatisticas.setVisible(false);
+                        vboxVitoria.setVisible(true);
+                        
+                        labelVitoriaSubtitulo.setText("Empate!");
+                        labelVitoriaSubtitulo.setTextFill(Color.web("#ffffff")); // Branco para destacar que foi neutro
+                        
+                        desenharTabuleiro();
+                    } 
+                    // -------------------------------------
+                    else {
                         mudarTurnoVisual(); 
                     }
                     
@@ -363,11 +367,33 @@ public class JanelaController implements Initializable {
     
     @FXML
     public void acaoJogarDeNovo(ActionEvent event) {
+        // 1. Avisa o adversário pela rede que o jogo reiniciou
+        if (gerenteRede != null) {
+            gerenteRede.enviarComando("RESTART");
+        }
+        
+        // 2. Limpa o jogo localmente
+        reiniciarJogoLocal();
+    }
+
+    @FXML
+    public void acaoSair(ActionEvent event) {
+        if (gerenteRede != null) {
+            gerenteRede.fecharConexao();
+        }
+        Platform.exit();
+        System.exit(0);
+    }
+    
+    /**
+     * Limpa o tabuleiro e as variáveis, voltando ao estado inicial
+     */
+    private void reiniciarJogoLocal() {
         modelo.reiniciarJogo();
         jogoTerminado = false;
         pecasEu = 0;
         pecasAdversario = 0;
-        turnoAtual = 1;
+        turnoAtual = 1; // O Amarelo começa sempre
 
         labelPecasEu.setText(nomeJogador1 + " - 0");
         labelPecasAdversario.setText(nomeJogador2 + " - 0");
@@ -385,12 +411,18 @@ public class JanelaController implements Initializable {
         desenharTabuleiro();
     }
 
-    @FXML
-    public void acaoSair(ActionEvent event) {
-        if (gerenteRede != null) {
-            gerenteRede.fecharConexao();
-        }
-        Platform.exit();
-        System.exit(0);
+    /**
+     * Chamado pelo GerenteRede quando o outro jogador clica em "Jogar de Novo"
+     */
+    public void receberNomeAdversarioRemoto(String nomeRecebido) {
+        Platform.runLater(() -> {
+            configurarJogadores(this.nomeJogador1, nomeRecebido);
+        });
+    }
+
+    public void receberRestartRemoto() {
+        Platform.runLater(() -> {
+            reiniciarJogoLocal();
+        });
     }
 }
