@@ -2,8 +2,8 @@ package com.emlinha;
 
 import java.net.URL;
 import java.util.ResourceBundle;
-import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.MouseEvent;
@@ -25,7 +25,7 @@ public class JanelaController implements Initializable {
     
     // Lógica do Jogo
     private JogoModelo modelo = new JogoModelo();
-    private int turnoAtual = 1; // 1 = Amarelo, 2 = Vermelho (Sincronizado globalmente)
+    private int turnoAtual = 1; // 1 = Amarelo, 2 = Vermelho
     private boolean jogoTerminado = false;
     private int colunaHover = -1;
     private int pecasEu = 0;
@@ -50,9 +50,13 @@ public class JanelaController implements Initializable {
     @FXML private Label labelVitoriaSubtitulo;
     @FXML private Label labelNomeAdversario;
     
-    // Injeção das referências do FXML para atualizar o topo dinamicamente
+    // Injeção do topo
     @FXML private Label labelTopoJogador1;
     @FXML private Label labelTopoJogador2;
+    
+    // --- COMPONENTES DO BLOCO DE ERRO ---
+    @FXML private HBox boxErro; 
+    @FXML private Label labelErro; 
     
     private GraphicsContext gc;
     private boolean animando = false; 
@@ -84,17 +88,12 @@ public class JanelaController implements Initializable {
             labelTurno.setText(nomeJogador2);
         }
         
-        // --- ADICIONADO: Atualiza a Label grande no topo do ecrã ---
         if (labelNomeAdversario != null) {
             labelNomeAdversario.setText(nomeJogador2);
         }
     }
     
-    /**
-     * MÉTODO ADICIONADO: Chamado pela thread de escuta da rede quando o nome chega.
-     */
     public void receberNomeAdversarioRemoto(String nomeRecebido) {
-        // Platform.runLater garante que a interface do JavaFX não bloqueia
         Platform.runLater(() -> {
             configurarJogadores(this.nomeJogador1, nomeRecebido);
             System.out.println("Interface atualizada com o nome do adversário: " + nomeRecebido);
@@ -105,30 +104,21 @@ public class JanelaController implements Initializable {
         this.gerenteRede = gerente;
         this.meuTurnoDeRede = comecaAJogar;
         System.out.println("Rede configurada no controlador. Meu turno de rede: " + comecaAJogar);
-        
-        // --- NOVO CÓDIGO: Envia o teu nome para o adversário mal entras no jogo ---
         this.gerenteRede.enviarComando("NOME:" + this.nomeJogador1);
     }
 
-    /**
-     * MÉTODOS DE REDE: Sincronização dinâmica dos nomes no ecrã e no topo
-     */
     public void atualizarNomeAdversario(String nomeDoOutro) {
         if (this.meuTurnoDeRede) {
-            // Se eu começo (Host), recebi o nome do Cliente (Jogador 2)
             this.nomeJogador2 = nomeDoOutro;
         } else {
-            // Se eu espero (Cliente), recebi o nome do Host (Jogador 1)
             this.nomeJogador1 = nomeDoOutro;
         }
         
-        // Força a interface a reescrever as labels na Thread gráfica principal
         Platform.runLater(() -> {
             labelPecasEu.setText(nomeJogador1 + " - " + pecasEu);
             labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
             labelTurno.setText(turnoAtual == 1 ? nomeJogador1 : nomeJogador2);
             
-            // Sincroniza os nomes gigantes do topo assim que a rede os recebe
             if (labelTopoJogador1 != null) labelTopoJogador1.setText(nomeJogador1);
             if (labelTopoJogador2 != null) labelTopoJogador2.setText(nomeJogador2);
             
@@ -144,9 +134,6 @@ public class JanelaController implements Initializable {
         return this.nomeJogador2;
     }
 
-    /**
-     * Recebe a jogada que veio do outro computador via Socket
-     */
     public void receberJogadaRemota(int coluna) {
         System.out.println("Jogada remota recebida na coluna: " + coluna);
         processarJogada(coluna);
@@ -162,7 +149,14 @@ public class JanelaController implements Initializable {
         double larguraColuna = canvas.getWidth() / 7;
         int colunaSelecionada = (int) (e.getX() / larguraColuna);
         
+        // Verifica se o topo da coluna está vazio (Valor 0 significa livre)
         if (modelo.getTabuleiro()[0][colunaSelecionada] == 0) {
+            
+            //  Esconde o bloco de erro pois a jogada é válida ---
+            if (boxErro != null) {
+                boxErro.setVisible(false);
+            }
+
             this.meuTurnoDeRede = false;
 
             if (gerenteRede != null) {
@@ -171,6 +165,11 @@ public class JanelaController implements Initializable {
             
             processarJogada(colunaSelecionada);
         } else {
+            // Mostra o bloco vermelho com a mensagem de coluna cheia ---
+            if (boxErro != null && labelErro != null) {
+                labelErro.setText("A Coluna " + (colunaSelecionada + 1) + " está Cheia! Escolhe outra");
+                boxErro.setVisible(true);
+            }
             System.out.println("Coluna cheia!");
         }
     }
@@ -181,6 +180,11 @@ public class JanelaController implements Initializable {
         int linhaOndeCaiu = modelo.inserirPeca(colunaSelecionada, turnoDaJogada);
         
         if (linhaOndeCaiu != -1) { 
+            // --- ADICIONADO: Garante que o erro desaparece quando o adversário joga remoto ---
+            if (boxErro != null) {
+                boxErro.setVisible(false);
+            }
+
             animando = true;
             animColuna = colunaSelecionada;
             animLinha = linhaOndeCaiu;
@@ -381,6 +385,11 @@ public class JanelaController implements Initializable {
 
         vboxVitoria.setVisible(false);
         vboxEstatisticas.setVisible(true);
+        
+        // --- ADICIONADO: Esconde o erro ao reiniciar o jogo ---
+        if (boxErro != null) {
+            boxErro.setVisible(false);
+        }
 
         desenharTabuleiro();
     }
