@@ -37,6 +37,7 @@ public class JanelaController implements Initializable {
     // Controlo de Rede
     private GerenteRede gerenteRede;
     private boolean meuTurnoDeRede = true; 
+    private boolean euComecoOJogo = true; // Guarda quem tem a vez inicial no Reset
     
     @FXML private Canvas canvas;
     @FXML private Label labelTurno;
@@ -103,6 +104,7 @@ public class JanelaController implements Initializable {
     public void configurarRede(GerenteRede gerente, boolean comecaAJogar) {
         this.gerenteRede = gerente;
         this.meuTurnoDeRede = comecaAJogar;
+        this.euComecoOJogo = comecaAJogar; // Memoriza quem iniciou a partida
         System.out.println("Rede configurada no controlador. Meu turno de rede: " + comecaAJogar);
         this.gerenteRede.enviarComando("NOME:" + this.nomeJogador1);
     }
@@ -136,8 +138,11 @@ public class JanelaController implements Initializable {
 
     public void receberJogadaRemota(int coluna) {
         System.out.println("Jogada remota recebida na coluna: " + coluna);
-        processarJogada(coluna);
-        this.meuTurnoDeRede = true;
+        // Proteção: Executa na Thread do JavaFX para evitar erros visuais na animação
+        Platform.runLater(() -> {
+            processarJogada(coluna);
+            this.meuTurnoDeRede = true;
+        });
     }
     
     @FXML
@@ -152,11 +157,12 @@ public class JanelaController implements Initializable {
         // Verifica se o topo da coluna está vazio (Valor 0 significa livre)
         if (modelo.getTabuleiro()[0][colunaSelecionada] == 0) {
             
-            //  Esconde o bloco de erro pois a jogada é válida ---
+            // Esconde o bloco de erro pois a jogada é válida ---
             if (boxErro != null) {
                 boxErro.setVisible(false);
             }
 
+            // Altera imediatamente o turno de rede para evitar cliques fantasmas rápidos
             this.meuTurnoDeRede = false;
 
             if (gerenteRede != null) {
@@ -180,7 +186,7 @@ public class JanelaController implements Initializable {
         int linhaOndeCaiu = modelo.inserirPeca(colunaSelecionada, turnoDaJogada);
         
         if (linhaOndeCaiu != -1) { 
-            // --- ADICIONADO: Garante que o erro desaparece quando o adversário joga remoto ---
+            // Garante que o erro desaparece quando o adversário joga remoto ---
             if (boxErro != null) {
                 boxErro.setVisible(false);
             }
@@ -230,7 +236,22 @@ public class JanelaController implements Initializable {
                             labelVitoriaSubtitulo.setTextFill(Color.web("#e53935"));
                         }
                         desenharTabuleiro(); 
-                    } else {
+                        
+                    } 
+                    // --- VERIFICAR EMPATE ---
+                    else if (modelo.verificarEmpate()) {
+                        jogoTerminado = true;
+                        
+                        vboxEstatisticas.setVisible(false);
+                        vboxVitoria.setVisible(true);
+                        
+                        labelVitoriaSubtitulo.setText("Empate!");
+                        labelVitoriaSubtitulo.setTextFill(Color.web("#ffffff")); 
+                        
+                        desenharTabuleiro();
+                    } 
+                    // -------------------------------------
+                    else {
                         mudarTurnoVisual(); 
                     }
                     
@@ -367,11 +388,30 @@ public class JanelaController implements Initializable {
     
     @FXML
     public void acaoJogarDeNovo(ActionEvent event) {
+        if (gerenteRede != null) {
+            gerenteRede.enviarComando("RESTART");
+        }
+        reiniciarJogoLocal();
+    }
+
+    @FXML
+    public void acaoSair(ActionEvent event) {
+        if (gerenteRede != null) {
+            gerenteRede.fecharConexao();
+        }
+        Platform.exit();
+        System.exit(0);
+    }
+    
+    private void reiniciarJogoLocal() {
         modelo.reiniciarJogo();
         jogoTerminado = false;
         pecasEu = 0;
         pecasAdversario = 0;
-        turnoAtual = 1;
+        turnoAtual = 1; // O Amarelo começa sempre estruturalmente no modelo
+
+        // Sincroniza quem joga na rede com base na configuração inicial da partida
+        this.meuTurnoDeRede = this.euComecoOJogo;
 
         labelPecasEu.setText(nomeJogador1 + " - 0");
         labelPecasAdversario.setText(nomeJogador2 + " - 0");
@@ -383,23 +423,25 @@ public class JanelaController implements Initializable {
         labelTurno.setText(nomeJogador1);
         labelTurno.setTextFill(Color.web("#ffc107"));
 
+       boxEu.setStyle("-fx-border-color: #ffc107; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;");
+        labelTurno.setText(nomeJogador1);
+        labelTurno.setTextFill(Color.web("#ffc107"));
+
         vboxVitoria.setVisible(false);
         vboxEstatisticas.setVisible(true);
         
-        // --- ADICIONADO: Esconde o erro ao reiniciar o jogo ---
         if (boxErro != null) {
             boxErro.setVisible(false);
         }
 
         desenharTabuleiro();
     }
-
-    @FXML
-    public void acaoSair(ActionEvent event) {
-        if (gerenteRede != null) {
-            gerenteRede.fecharConexao();
-        }
-        Platform.exit();
-        System.exit(0);
+    
+    public void receberRestartRemoto() {
+        Platform.runLater(() -> {
+            reiniciarJogoLocal();
+        });
     }
-}
+    
+}  
+

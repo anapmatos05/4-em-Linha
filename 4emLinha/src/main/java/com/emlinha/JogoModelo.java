@@ -64,6 +64,22 @@ public class JogoModelo {
         }
         return false;
     }
+    
+    /**
+     * Verifica se o tabuleiro está completamente cheio (Empate).
+     * @return true se for empate, false se ainda houver espaço.
+     */
+    public boolean verificarEmpate() {
+        int[][] tabuleiro = getTabuleiro();
+        
+        // Basta verificar a linha do topo (índice 0) de todas as colunas
+        for (int coluna = 0; coluna < 7; coluna++) {
+            if (tabuleiro[0][coluna] == 0) {
+                return false; // Encontrou um espaço vazio, o jogo pode continuar
+            }
+        }
+        return true; // Não há mais espaços na linha do topo
+    }
 
     // Método para recomeçar o jogo
     public void reiniciarJogo() {
