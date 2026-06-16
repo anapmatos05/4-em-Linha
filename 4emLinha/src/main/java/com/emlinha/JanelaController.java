@@ -50,6 +50,7 @@ public class JanelaController implements Initializable {
     @FXML private VBox vboxVitoria;
     @FXML private Label labelVitoriaSubtitulo;
     @FXML private Label labelNomeAdversario;
+    @FXML private Label labelAvisoColuna;
     
     // Injeção do topo
     @FXML private Label labelTopoJogador1;
@@ -89,6 +90,10 @@ public class JanelaController implements Initializable {
             labelTurno.setText(nomeJogador2);
         }
         
+        // --- A CORREÇÃO: Obriga os nomes na barra superior a atualizarem-se! ---
+        if (labelTopoJogador1 != null) {
+            labelTopoJogador1.setText(nomeJogador1);
+        }
         if (labelNomeAdversario != null) {
             labelNomeAdversario.setText(nomeJogador2);
         }
@@ -106,7 +111,15 @@ public class JanelaController implements Initializable {
         this.meuTurnoDeRede = comecaAJogar;
         this.euComecoOJogo = comecaAJogar; // Memoriza quem iniciou a partida
         System.out.println("Rede configurada no controlador. Meu turno de rede: " + comecaAJogar);
-        this.gerenteRede.enviarComando("NOME:" + this.nomeJogador1);
+    }
+    
+    /**
+     * Chamado automaticamente assim que a ligação de rede é estabelecida com sucesso.
+     */
+    public void enviarMeuNome() {
+        if (gerenteRede != null) {
+            gerenteRede.enviarComando("NOME:" + this.nomeJogador1);
+        }
     }
 
     public void atualizarNomeAdversario(String nomeDoOutro) {
@@ -121,8 +134,13 @@ public class JanelaController implements Initializable {
             labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
             labelTurno.setText(turnoAtual == 1 ? nomeJogador1 : nomeJogador2);
             
-            if (labelTopoJogador1 != null) labelTopoJogador1.setText(nomeJogador1);
-            if (labelTopoJogador2 != null) labelTopoJogador2.setText(nomeJogador2);
+            // --- A CORREÇÃO: Sincroniza a barra do topo com as estatísticas ---
+            if (labelTopoJogador1 != null) {
+                labelTopoJogador1.setText(nomeJogador1);
+            }
+            if (labelNomeAdversario != null) {
+                labelNomeAdversario.setText(nomeJogador2);
+            }
             
             desenharTabuleiro();
         });
@@ -157,10 +175,9 @@ public class JanelaController implements Initializable {
         // Verifica se o topo da coluna está vazio (Valor 0 significa livre)
         if (modelo.getTabuleiro()[0][colunaSelecionada] == 0) {
             
-            // Esconde o bloco de erro pois a jogada é válida ---
-            if (boxErro != null) {
-                boxErro.setVisible(false);
-            }
+            // Esconde os avisos de erro pois a jogada é válida ---
+            if (boxErro != null) boxErro.setVisible(false);
+            if (labelAvisoColuna != null) labelAvisoColuna.setVisible(false);
 
             // Altera imediatamente o turno de rede para evitar cliques fantasmas rápidos
             this.meuTurnoDeRede = false;
@@ -171,12 +188,12 @@ public class JanelaController implements Initializable {
             
             processarJogada(colunaSelecionada);
         } else {
-            // Mostra o bloco vermelho com a mensagem de coluna cheia ---
-            if (boxErro != null && labelErro != null) {
-                labelErro.setText("A Coluna " + (colunaSelecionada + 1) + " está Cheia! Escolhe outra");
-                boxErro.setVisible(true);
+            System.out.println("Coluna cheia! Tente outra.");
+            // Mostra o aviso com o número da coluna
+            if (labelAvisoColuna != null) {
+                labelAvisoColuna.setText("A Coluna " + (colunaSelecionada + 1) + " está Cheia!\nEscolha outra.");
+                labelAvisoColuna.setVisible(true);
             }
-            System.out.println("Coluna cheia!");
         }
     }
 
@@ -187,9 +204,8 @@ public class JanelaController implements Initializable {
         
         if (linhaOndeCaiu != -1) { 
             // Garante que o erro desaparece quando o adversário joga remoto ---
-            if (boxErro != null) {
-                boxErro.setVisible(false);
-            }
+            if (boxErro != null) boxErro.setVisible(false);
+            if (labelAvisoColuna != null) labelAvisoColuna.setVisible(false);
 
             animando = true;
             animColuna = colunaSelecionada;
@@ -292,19 +308,36 @@ public class JanelaController implements Initializable {
 
         double alturaTopo = 60.0; 
         double larguraColuna = canvas.getWidth() / 7;
+        
         double alturaRestante = canvas.getHeight() - alturaTopo;
         double alturaLinha = alturaRestante / 6;
+        
         double raio = Math.min(larguraColuna, alturaLinha) / 2.5; 
 
+        // --- A MAGIA DO FUNDO AZUL ESCURO (Pinta a grelha por trás das peças) ---
+        gc.setFill(Color.web("#083c54"));
+        gc.fillRect(0, alturaTopo, canvas.getWidth(), canvas.getHeight() - alturaTopo);
+
+        // 1. FUNDO DA BARRA DO TOPO (Retângulo plano, colado ao jogo)
         gc.setFill(Color.web("#5a8ca0")); 
         gc.fillRect(0, 0, canvas.getWidth(), alturaTopo);
-        gc.setFont(Font.font("System", FontWeight.BOLD, 22));
 
+        gc.setFont(Font.font("System", FontWeight.BOLD, 22));
+        
+        // 2. MAGIA DO ALINHAMENTO: Força o JavaFX a centrar o texto de forma automática
+        gc.setTextAlign(javafx.scene.text.TextAlignment.CENTER);
+        gc.setTextBaseline(javafx.geometry.VPos.CENTER);
+
+        int[][] estadoAtual = modelo.getTabuleiro();
+
+        // 3. DESENHAR A BARRA DE SELEÇÃO DO TOPO
         for (int i = 0; i < 7; i++) {
             double centroX = (i * larguraColuna) + (larguraColuna / 2);
             double centroY = alturaTopo / 2;
 
-            if (i == colunaHover && !jogoTerminado && !animando && meuTurnoDeRede) {
+            if (estadoAtual[0][i] != 0) {
+                gc.setFill(Color.web("#455a64")); // Cor Cinzenta de bloqueio
+            } else if (i == colunaHover && !jogoTerminado && !animando && meuTurnoDeRede) {
                 gc.setFill(turnoAtual == 1 ? Color.web("#ffc107") : Color.web("#e53935"));
             } else {
                 gc.setFill(Color.web("#9abccc")); 
@@ -313,15 +346,17 @@ public class JanelaController implements Initializable {
             gc.fillOval(centroX - raio, centroY - raio, raio * 2, raio * 2);
 
             gc.setFill(Color.web("#083c54"));
-            gc.fillText(String.valueOf(i + 1), centroX - 7, centroY + 8);
+            
+            // O número agora usa o centroX e centroY exatos!
+            gc.fillText(String.valueOf(i + 1), centroX, centroY); 
         }
 
-        int[][] estadoAtual = modelo.getTabuleiro();
-
+        // 4. DESENHAR AS PEÇAS NO TABULEIRO INFERIOR
         for (int linha = 0; linha < 6; linha++) {
             for (int coluna = 0; coluna < 7; coluna++) {
                 double centroX = (coluna * larguraColuna) + (larguraColuna / 2);
                 double centroY = alturaTopo + (linha * alturaLinha) + (alturaLinha / 2);
+                
                 double x = centroX - raio;
                 double y = centroY - raio;
 
@@ -423,16 +458,11 @@ public class JanelaController implements Initializable {
         labelTurno.setText(nomeJogador1);
         labelTurno.setTextFill(Color.web("#ffc107"));
 
-       boxEu.setStyle("-fx-border-color: #ffc107; -fx-border-radius: 30; -fx-border-width: 2; -fx-padding: 5 15 5 15;");
-        labelTurno.setText(nomeJogador1);
-        labelTurno.setTextFill(Color.web("#ffc107"));
-
         vboxVitoria.setVisible(false);
         vboxEstatisticas.setVisible(true);
         
-        if (boxErro != null) {
-            boxErro.setVisible(false);
-        }
+        if (boxErro != null) boxErro.setVisible(false);
+        if (labelAvisoColuna != null) labelAvisoColuna.setVisible(false);
 
         desenharTabuleiro();
     }
@@ -443,5 +473,4 @@ public class JanelaController implements Initializable {
         });
     }
     
-}  
-
+}
