@@ -128,11 +128,14 @@ public class JanelaController implements Initializable {
         
         // Garante a reconfiguração dos nós de texto na barra de navegação de topo
         if (labelTopoJogador1 != null) {
-            labelTopoJogador1.setText(nomeJogador1);
-        }
-        if (labelNomeAdversario != null) {
-            labelNomeAdversario.setText(nomeJogador2);
-        }
+    labelTopoJogador1.setText(nomeJogador1);
+}
+if (labelTopoJogador2 != null) {
+    labelTopoJogador2.setText(nomeJogador2);
+}
+if (labelNomeAdversario != null) {
+    labelNomeAdversario.setText(nomeJogador2);
+}
     }
     
     /**
