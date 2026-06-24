@@ -6,7 +6,7 @@ O objetivo do projeto foi conceber e programar uma versão digital e moderna do 
 
 ---
 
-## Autores (Grupo 01)
+## Autores (Grupo 02)
 * **Ana Matos** (33138)
 * **Ulysse Cancela** (33136)
 * **Docente:** Luís Romero
