@@ -22,6 +22,11 @@ import javafx.scene.control.Button;
 import javafx.scene.layout.VBox;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.util.Scanner;
+import javafx.event.ActionEvent;
 
 /**
  * Controlador da Janela Principal do Jogo "4 em Linha".
@@ -128,14 +133,14 @@ public class JanelaController implements Initializable {
         
         // Garante a reconfiguração dos nós de texto na barra de navegação de topo
         if (labelTopoJogador1 != null) {
-    labelTopoJogador1.setText(nomeJogador1);
-}
-if (labelTopoJogador2 != null) {
-    labelTopoJogador2.setText(nomeJogador2);
-}
-if (labelNomeAdversario != null) {
-    labelNomeAdversario.setText(nomeJogador2);
-}
+        labelTopoJogador1.setText(nomeJogador1);
+        }
+        if (labelTopoJogador2 != null) {
+            labelTopoJogador2.setText(nomeJogador2);
+        }
+        if (labelNomeAdversario != null) {
+            labelNomeAdversario.setText(nomeJogador2);
+        }
     }
     
     /**
@@ -145,15 +150,13 @@ if (labelNomeAdversario != null) {
     public void receberNomeAdversarioRemoto(String nomeRecebido) {
         Platform.runLater(() -> {
             if (this.euComecoOJogo) {
-                // Cenário: Sou o Host (Amarelo). O nome recebido pertence ao Cliente remoto (Vermelho).
+                // Sou o Host (Amarelo). O nome que chegou é do Cliente (Vermelho).
                 configurarJogadores(this.nomeJogador1, nomeRecebido);
             } else {
-                // Cenário: Sou o Cliente (Vermelho). O nome recebido mapeia o Host remoto (Amarelo).
+                // Sou o Cliente (Vermelho). O nome que chegou é do Host (Amarelo).
                 configurarJogadores(nomeRecebido, this.nomeJogador2);
             }
-            
             desenharTabuleiro();
-            System.out.println("Nomes perfeitamente sincronizados!");
         });
     }
 
@@ -167,8 +170,7 @@ if (labelNomeAdversario != null) {
         this.euComecoOJogo = comecaAJogar; 
         
         if (!comecaAJogar) {
-            // Se o utilizador atual é o Cliente Convidado, o seu nome local migra 
-            // para a ranhura 2 (Vermelho), libertando a ranhura 1 para o Host.
+            // Sou o Cliente! O meu nome vai para o lado Vermelho (Jogador 2).
             this.nomeJogador2 = this.nomeJogador1; 
             this.nomeJogador1 = "Adversário";      
             
@@ -176,7 +178,7 @@ if (labelNomeAdversario != null) {
                 configurarJogadores(this.nomeJogador1, this.nomeJogador2);
             });
         }
-        System.out.println("Rede configurada no controlador. Sou o Host? " + comecaAJogar);
+        System.out.println("Rede configurada. Sou o Host? " + comecaAJogar);
     }
     
     /**
@@ -551,37 +553,37 @@ if (labelNomeAdversario != null) {
 
     
 
-@FXML
-public void acaoVoltarMenu(ActionEvent event) {
+    @FXML
+    public void acaoVoltarMenu(ActionEvent event) {
 
-    // 1. Impedir chamadas repetidas
-    if (aRegressarAoMenu) return;
-    aRegressarAoMenu = true;
+        // 1. Impedir chamadas repetidas
+        if (aRegressarAoMenu) return;
+        aRegressarAoMenu = true;
 
-    System.out.println("A fechar o jogo e a regressar ao Menu Inicial...");
+        System.out.println("A fechar o jogo e a regressar ao Menu Inicial...");
 
-    // 2. Fechar rede
-    try {
-        if (gerenteRede != null) {
-            gerenteRede.fecharConexao();
+        // 2. Fechar rede
+        try {
+            if (gerenteRede != null) {
+                gerenteRede.fecharConexao();
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao fechar rede: " + e.getMessage());
         }
-    } catch (Exception e) {
-        System.out.println("Erro ao fechar rede: " + e.getMessage());
-    }
-    gerenteRede = null;
+        gerenteRede = null;
 
-    // 3. Carregar manualmente o FXML e trocar o root da cena atual
-    try {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("primary.fxml"));
-        Parent root = loader.load();
-        btnHome.getScene().setRoot(root);
-    } catch (Exception e) {
-        e.printStackTrace();
+        // 3. Carregar manualmente o FXML e trocar o root da cena atual
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("primary.fxml"));
+            Parent root = loader.load();
+            btnHome.getScene().setRoot(root);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
-}
-    /**
-     * Alterna o estado de pausa do jogo, ocultando as estatísticas e mostrando o menu correspondente.
-     */
+        /**
+         * Alterna o estado de pausa do jogo, ocultando as estatísticas e mostrando o menu correspondente.
+         */
     @FXML
     public void acaoAlternarPausa(ActionEvent event) {
         jogoPausado = !jogoPausado;
@@ -591,6 +593,60 @@ public void acaoVoltarMenu(ActionEvent event) {
         } else {
             vboxPausa.setVisible(false);
             vboxEstatisticas.setVisible(true);
+        }
+    }
+    
+    @FXML
+    public void acaoGuardarJogo(ActionEvent event) {
+        try (PrintWriter out = new PrintWriter(new FileWriter("save_4emlinha.txt"))) {
+            out.println(turnoAtual);
+            out.println(pecasEu);
+            out.println(pecasAdversario);
+            
+            int[][] tab = modelo.getTabuleiro();
+            for (int l = 0; l < 6; l++) {
+                for (int c = 0; c < 7; c++) {
+                    out.print(tab[l][c] + " ");
+                }
+                out.println();
+            }
+            System.out.println("Jogo guardado com sucesso!");
+        } catch (Exception e) {
+            System.out.println("Erro ao guardar: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    public void acaoCarregarJogo(ActionEvent event) {
+        File ficheiro = new File("save_4emlinha.txt");
+        if (!ficheiro.exists()) {
+            System.out.println("Nenhum ficheiro de gravação encontrado.");
+            return;
+        }
+
+        try (Scanner in = new Scanner(ficheiro)) {
+            turnoAtual = in.nextInt();
+            pecasEu = in.nextInt();
+            pecasAdversario = in.nextInt();
+            
+            int[][] tab = modelo.getTabuleiro();
+            for (int l = 0; l < 6; l++) {
+                for (int c = 0; c < 7; c++) {
+                    tab[l][c] = in.nextInt(); // Substitui as peças no modelo
+                }
+            }
+            
+            // Atualizar a interface visual
+            Platform.runLater(() -> {
+                labelPecasEu.setText(nomeJogador1 + " - " + pecasEu);
+                labelPecasAdversario.setText(nomeJogador2 + " - " + pecasAdversario);
+                mudarTurnoVisual(); 
+                mudarTurnoVisual(); // Truque rápido para forçar as cores corretas das caixas
+                desenharTabuleiro();
+            });
+            System.out.println("Jogo carregado com sucesso!");
+        } catch (Exception e) {
+            System.out.println("Erro ao carregar: " + e.getMessage());
         }
     }
 }

@@ -61,8 +61,6 @@ public class GerenteRede {
         saida = new PrintWriter(socket.getOutputStream(), true);
         entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         
-        // A ligação foi estabelecida com sucesso! 
-        // O Controlador agora envia o nome apenas uma vez de forma segura.
         Platform.runLater(() -> {
             if (janelaController != null) {
                 janelaController.enviarMeuNome();
@@ -70,23 +68,17 @@ public class GerenteRede {
         });
     }
 
-    /**
-     * Implementação da escuta ativa (Trata Jogadas, Nomes e Restarts)
-     */
     private void escutarRede() {
         try {
             String linha;
             while (ativo && (linha = entrada.readLine()) != null) {
-                System.out.println("Mensagem recebida da rede: " + linha);
-                
+                System.out.println("Mensagem da rede: " + linha);
                 String mensagem = linha;
                 
-                // 1. Receber e Tratar o NOME
                 if (mensagem.startsWith("NOME:")) {
                     String nomeRecebido = mensagem.substring(5);
                     janelaController.receberNomeAdversarioRemoto(nomeRecebido);
                 }
-                // 2. Receber e Tratar a JOGADA
                 else if (mensagem.startsWith("JOGADA:")) {
                     try {
                         int coluna = Integer.parseInt(mensagem.split(":")[1]);
@@ -97,13 +89,12 @@ public class GerenteRede {
                         System.out.println("Erro ao ler jogada.");
                     }
                 } 
-                // 3. Receber e Tratar o RESTART
                 else if (mensagem.equals("RESTART")) {
                     janelaController.receberRestartRemoto();
                 }
             }
         } catch (IOException e) {
-            System.out.println("Conexão de rede encerrada.");
+            System.out.println("Conexão encerrada.");
         }
     }
 
