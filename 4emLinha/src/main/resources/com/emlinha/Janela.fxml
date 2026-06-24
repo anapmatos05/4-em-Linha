@@ -59,22 +59,22 @@
    <right>
       <StackPane prefWidth="250.0" BorderPane.alignment="CENTER">
          <children>
-            <VBox fx:id="vboxEstatisticas" alignment="TOP_CENTER" spacing="10.0" style="-fx-background-color: #083c54;">
+            <VBox fx:id="vboxEstatisticas" alignment="TOP_CENTER" spacing="8.0" style="-fx-background-color: #083c54;">
                <children>
                   <Label text="Estado" textFill="#9abccc">
-                     <font><Font size="28.0" /></font>
-                     <VBox.margin><Insets top="20.0" /></VBox.margin>
+                     <font><Font size="26.0" /></font>
+                     <VBox.margin><Insets top="15.0" /></VBox.margin>
                   </Label>
                   <Label text="Turno:" textFill="#9abccc">
                      <font><Font size="16.0" /></font>
-                     <VBox.margin><Insets top="10.0" /></VBox.margin>
+                     <VBox.margin><Insets top="5.0" /></VBox.margin>
                   </Label>
                   <Label fx:id="labelTurno" text="Eu" textFill="#ffc107">
                      <font><Font size="22.0" /></font>
                   </Label>
                   <Label text="Peças jogadas:" textFill="#9abccc">
                      <font><Font size="16.0" /></font>
-                     <VBox.margin><Insets top="15.0" /></VBox.margin>
+                     <VBox.margin><Insets top="10.0" /></VBox.margin>
                   </Label>
                   <Label fx:id="labelPecasEu" text="Eu - 0" textFill="#ffc107">
                      <font><Font size="20.0" /></font>
@@ -84,17 +84,27 @@
                   </Label>
                   <Label text="Última jogada:" textFill="#9abccc">
                      <font><Font size="16.0" /></font>
-                     <VBox.margin><Insets top="15.0" /></VBox.margin>
+                     <VBox.margin><Insets top="10.0" /></VBox.margin>
                   </Label>
                   <Label fx:id="labelUltimaJogada" text="Nenhuma" textFill="#9abccc">
                      <font><Font size="20.0" /></font>
                   </Label>
                   
-                  <Label fx:id="labelAvisoColuna" alignment="CENTER" style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-padding: 10; -fx-background-radius: 5; -fx-font-weight: bold;" text="A Coluna está Cheia!&#10;Escolhe outra." textAlignment="CENTER" visible="false" wrapText="true">
+                  <Label fx:id="labelAvisoColuna" alignment="CENTER" style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-padding: 8; -fx-background-radius: 5; -fx-font-weight: bold;" text="A Coluna está Cheia!&#10;Escolhe outra." textAlignment="CENTER" visible="false" wrapText="true">
                      <VBox.margin>
-                        <Insets top="30.0" />
+                        <Insets top="15.0" />
                      </VBox.margin>
                   </Label>
+
+                  <HBox alignment="CENTER" spacing="10.0">
+                     <VBox.margin>
+                        <Insets top="15.0" />
+                     </VBox.margin>
+                     <children>
+                        <Button mnemonicParsing="false" onAction="#acaoGuardarJogo" prefWidth="100.0" style="-fx-background-color: #357b9c; -fx-text-fill: white; -fx-cursor: hand;" text="Gravar" />
+                        <Button mnemonicParsing="false" onAction="#acaoCarregarJogo" prefWidth="100.0" style="-fx-background-color: #357b9c; -fx-text-fill: white; -fx-cursor: hand;" text="Carregar" />
+                     </children>
+                  </HBox>
 
                   <Region VBox.vgrow="ALWAYS" />
 
@@ -155,12 +165,6 @@
                      </children>
                   </VBox>
                   <Region VBox.vgrow="ALWAYS" />
-                  <Button mnemonicParsing="false" onAction="#acaoJogarDeNovo" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #5a8ca0; -fx-background-radius: 15; -fx-cursor: hand;" text="Jogar de novo" textFill="WHITE">
-                     <font><Font size="22.0" /></font>
-                  </Button>
-                  <Button mnemonicParsing="false" onAction="#acaoSair" prefHeight="50.0" prefWidth="200.0" style="-fx-background-color: #5a8ca0; -fx-background-radius: 15; -fx-cursor: hand;" text="Sair" textFill="WHITE">
-                     <font><Font size="22.0" /></font>
-                  </Button>
                </children>
             </VBox>
          </children>
